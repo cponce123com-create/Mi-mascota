@@ -19,6 +19,7 @@ model User {
   displayName   String?
   pets          Pet[]
   posts         Post[]
+  comments      Comment[]
   adoptionListings AdoptionListing[] @relation("AdoptionAuthor")
   adoptionApplications AdoptionApplication[] @relation("AdoptionApplicant")
   createdAt     DateTime @default(now())
@@ -86,6 +87,7 @@ model Post {
   author    User     @relation(fields: [authorId], references: [id])
   title     String
   body      String
+  comments  Comment[]
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
   @@index([createdAt])
@@ -119,4 +121,18 @@ model AdoptionApplication {
 
   @@unique([listingId, applicantId])
   @@index([applicantId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+
+  @@index([postId, status, createdAt])
+  @@index([authorId])
 }
