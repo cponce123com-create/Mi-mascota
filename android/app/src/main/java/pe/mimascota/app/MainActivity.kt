@@ -36,6 +36,7 @@ import pe.mimascota.app.ui.PetViewModelFactory
 import pe.mimascota.app.ui.PetsScreen
 import pe.mimascota.app.ui.PetProfileScreen
 import pe.mimascota.app.ui.ModerationScreen
+import pe.mimascota.app.notifications.ReminderNotifications
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private val MIGRATION_2_3 = object : Migration(2, 3) {
@@ -97,6 +98,11 @@ class MainActivity : ComponentActivity() {
             }
             val allPets by vm.pets.collectAsStateWithLifecycle()
             val allPhotos by database.healthDao().allPhotos().collectAsStateWithLifecycle(emptyList())
+            val allReminders by database.healthDao().allReminders().collectAsStateWithLifecycle(emptyList())
+            LaunchedEffect(allReminders) {
+                if (ReminderNotifications.hasPermission(this@MainActivity))
+                    allReminders.forEach { ReminderNotifications.schedule(this@MainActivity, it) }
+            }
             val goBack = { destination = Destination.Pets }
             androidx.activity.compose.BackHandler(destination != Destination.Pets) { goBack() }
 
