@@ -113,7 +113,7 @@ fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
             sending = true
             scope.launch {
                 runCatching {
-                    val token = communityToken() ?: error("Inicia sesión con Google en Mi cuenta.")
+                    val token = communityToken() ?: throw IllegalStateException("Inicia sesión con Google en Mi cuenta.")
                     api.post(title.trim(), body.trim(), token)
                 }.onSuccess {
                     composing = false
