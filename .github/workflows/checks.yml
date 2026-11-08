@@ -75,9 +75,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Build and test Android
-        run: gradle :app:assembleDebug :app:testDebugUnitTest --no-daemon --stacktrace --console=plain
+      - name: Build Android debug APK
+        shell: bash
         working-directory: android
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --no-daemon --stacktrace --console=plain 2>&1 | tee "$RUNNER_TEMP/android-build.log"
       - name: Publish debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -85,3 +88,19 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+      - name: Run Android unit tests
+        shell: bash
+        working-directory: android
+        run: |
+          set -o pipefail
+          gradle :app:testDebugUnitTest --no-daemon --stacktrace --console=plain 2>&1 | tee "$RUNNER_TEMP/android-tests.log"
+      - name: Publish Android diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mi-Mascota-Android-Logs
+          path: |
+            ${{ runner.temp }}/android-build.log
+            ${{ runner.temp }}/android-tests.log
+          if-no-files-found: warn
+          retention-days: 14
