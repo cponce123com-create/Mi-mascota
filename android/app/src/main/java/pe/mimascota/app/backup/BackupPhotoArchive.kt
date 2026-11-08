@@ -94,7 +94,29 @@ class BackupPhotoArchive(private val context: Context, private val dao: BackupDa
     suspend fun prepareEncrypted(uri: Uri, password: String): PreparedPhotoArchive = withContext(Dispatchers.IO) {
         val input = context.contentResolver.openInputStream(uri)
             ?: error("No se puede abrir el respaldo cifrado")
-        readArchive(BackupCrypto.decrypt(input, password))
+        val temporary = File(context.cacheDir, "verified-${UUID.randomUUID()}.zip")
+        try {
+            // Read the *entire* authenticated stream before parsing ZIP or writing Room.
+            // This validates the GCM tag even if ZipInputStream would stop at central directory.
+            BackupCrypto.decrypt(input, password).use { decrypted ->
+                temporary.outputStream().buffered().use { out ->
+                    val buffer = ByteArray(8192)
+                    var size = 0L
+                    while (true) {
+                        val count = decrypted.read(buffer)
+                        if (count == -1) break
+                        size += count
+                        require(size <= MAX_ARCHIVE_BYTES + 5_000_000L) {
+                            "Respaldo cifrado demasiado grande"
+                        }
+                        out.write(buffer, 0, count)
+                    }
+                }
+            }
+            readArchive(temporary.inputStream())
+        } finally {
+            temporary.delete()
+        }
     }
 
     private fun readArchive(input: InputStream): PreparedPhotoArchive {
