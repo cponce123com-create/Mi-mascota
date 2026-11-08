@@ -16,6 +16,13 @@ class PetViewModel(private val repository: PetRepository) : ViewModel() {
             onResult(error)
         }
     }
+    fun update(id: String, name: String, species: String, birthDate: String?, onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            val error = runCatching { repository.update(id, name, species, birthDate) }.exceptionOrNull()?.message
+            onResult(error)
+        }
+    }
+
     fun remove(id: String, onResult: (String?) -> Unit = {}) {
         viewModelScope.launch {
             val error = runCatching { repository.remove(id) }.exceptionOrNull()?.message
