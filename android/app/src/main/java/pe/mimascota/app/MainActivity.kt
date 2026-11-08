@@ -36,6 +36,7 @@ import pe.mimascota.app.ui.PetViewModelFactory
 import pe.mimascota.app.ui.PetsScreen
 import pe.mimascota.app.ui.PetProfileScreen
 import pe.mimascota.app.ui.ModerationScreen
+import pe.mimascota.app.ui.AdoptionChatScreen
 import pe.mimascota.app.notifications.ReminderNotifications
 import pe.mimascota.app.data.PushSubscription
 import pe.mimascota.app.data.CompanionRepository
@@ -77,6 +78,7 @@ private sealed interface Destination {
     data object Vets : Destination
     data object Account : Destination
     data object Moderation : Destination
+    data class AdoptionChat(val applicationId: String) : Destination
     data object Adoption : Destination
     data object Lost : Destination
     data class Profile(val petId: String) : Destination
@@ -196,16 +198,20 @@ class MainActivity : ComponentActivity() {
                                         getSharedPreferences("reminder_history", MODE_PRIVATE).edit().clear().apply()
                                     }
                                 })
+                            is Destination.AdoptionChat -> AdoptionChatScreen(page.applicationId,
+                                onBack = { destination = Destination.Adoption })
                             Destination.Moderation -> ModerationScreen(
                                 onBack = { destination = Destination.Account })
                             Destination.Adoption -> DiscoverScreen("adoption", pets = allPets, onBack = goBack,
                                 onCommunity = { destination = Destination.Community },
                                 onVets = { destination = Destination.Vets },
-                                onAccount = { destination = Destination.Account })
+                                onAccount = { destination = Destination.Account },
+                                onChat = { destination = Destination.AdoptionChat(it) })
                             Destination.Lost -> DiscoverScreen("lost", pets = allPets, onBack = goBack,
                                 onCommunity = { destination = Destination.Community },
                                 onVets = { destination = Destination.Vets },
-                                onAccount = { destination = Destination.Account })
+                                onAccount = { destination = Destination.Account },
+                                onChat = { destination = Destination.AdoptionChat(it) })
                             Destination.Vets -> VetMapScreen(onBack = goBack)
                             is Destination.Profile -> PetProfileScreen(
                                 allPets.firstOrNull { it.id == page.petId },
