@@ -8,4 +8,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun petDao(): PetDao
     abstract fun healthDao(): HealthDao
     abstract fun expenseDao(): ExpenseDao
+    abstract fun backupDao(): BackupDao
 }
