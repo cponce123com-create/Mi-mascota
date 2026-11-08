@@ -3,6 +3,20 @@ on: [push, pull_request]
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: mimascota
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d mimascota"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/mimascota
     steps:
@@ -13,6 +27,8 @@ jobs:
       - run: npm install --no-audit --no-fund
         working-directory: backend
       - run: npx prisma validate
+        working-directory: backend
+      - run: npm run prisma:migrate
         working-directory: backend
       - run: npm run build
         working-directory: backend
