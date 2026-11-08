@@ -2,6 +2,10 @@ package pe.mimascota.app.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.ImageView
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -44,7 +48,11 @@ fun PhotoScreen(petId: String, dao: HealthDao, onBack: () -> Unit) {
         Text("Las fotos se conservan en el almacenamiento elegido; esta versión guarda su referencia local.")
         LazyColumn {
             items(photos, key = { it.id }) { photo ->
-                ListItem(headlineContent = { Text("Fotografía guardada") },
+                ListItem(leadingContent = {
+                    AndroidView(factory = { ctx -> ImageView(ctx).apply { scaleType = ImageView.ScaleType.CENTER_CROP } },
+                        update = { view -> runCatching { view.setImageURI(Uri.parse(photo.uri)) }.onFailure { view.setImageDrawable(null) } },
+                        modifier = Modifier.size(68.dp).clip(RoundedCornerShape(12.dp)))
+                }, headlineContent = { Text("Fotografía guardada") },
                     supportingContent = { Text(java.text.DateFormat.getDateInstance().format(java.util.Date(photo.createdAt))) },
                     trailingContent = {
                         Row {
