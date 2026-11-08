@@ -25,5 +25,13 @@ class PetRepository(private val dao: PetDao) {
         dao.updateDetails(id, cleanName, species, date?.toString())
     }
 
+    suspend fun updateProfile(id: String, breed: String?, weight: Float?, sterilized: Boolean?, microchip: String?) {
+        require(breed == null || breed.length <= 80) { "Raza demasiado larga" }
+        require(weight == null || (weight.isFinite() && weight > 0f && weight <= 1000f)) { "Peso inválido" }
+        require(microchip == null || microchip.length <= 80) { "Microchip demasiado largo" }
+        dao.updateProfile(id, breed?.trim()?.ifBlank { null }, weight, sterilized,
+            microchip?.trim()?.ifBlank { null })
+    }
+
     suspend fun remove(id: String) = dao.delete(id)
 }
