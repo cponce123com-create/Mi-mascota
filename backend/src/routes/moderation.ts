@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma as db } from '../db.js';
 import { authenticatedUser } from '../auth.js';
+import { notifyAccount } from '../push.js';
 
 const paramsSchema = z.object({ kind: z.enum(['post', 'lost', 'adoption', 'comment']), id: z.string().uuid() });
 const decisionSchema = z.object({ approve: z.boolean() });
@@ -44,6 +45,18 @@ export async function moderationRoutes(app: FastifyInstance) {
       : kind === 'adoption'
       ? await db.adoptionListing.updateMany({ where: { id, status: 'PENDING' }, data: { status: approved ? 'APPROVED' : 'REJECTED' } })
       : await db.comment.updateMany({ where: { id, status: 'PENDING' }, data: { status: approved ? 'APPROVED' : 'REJECTED' } });
-    return result.count ? { moderated: true } : reply.code(404).send({ error: 'Not pending or not found' });
+    if (!result.count) return reply.code(404).send({ error: 'Not pending or not found' });
+    if (approved) {
+      const ownerId = kind === 'post'
+        ? (await db.post.findUnique({ where: { id }, select: { authorId: true } }))?.authorId
+        : kind === 'lost'
+        ? (await db.lostPetAlert.findUnique({ where: { id },
+            select: { pet: { select: { ownerId: true } } } }))?.pet.ownerId
+        : kind === 'adoption'
+        ? (await db.adoptionListing.findUnique({ where: { id }, select: { authorId: true } }))?.authorId
+        : (await db.comment.findUnique({ where: { id }, select: { authorId: true } }))?.authorId;
+      if (ownerId) await notifyAccount(ownerId, 'Mi Mascota', 'Tu contenido fue aprobado.');
+    }
+    return { moderated: true };
   });
 }
