@@ -3,29 +3,22 @@ package pe.mimascota.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
+import androidx.lifecycle.ViewModelProvider
+import androidx.room.Room
+import pe.mimascota.app.data.AppDatabase
+import pe.mimascota.app.data.PetRepository
+import pe.mimascota.app.ui.PetViewModel
+import pe.mimascota.app.ui.PetViewModelFactory
+import pe.mimascota.app.ui.PetsScreen
 
 class MainActivity : ComponentActivity() {
+    private val database by lazy {
+        Room.databaseBuilder(applicationContext, AppDatabase::class.java, "mi-mascota.db").build()
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { HomeScreen() } }
-    }
-}
-
-@Composable
-fun HomeScreen() {
-    Scaffold { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("🐾 Mi Mascota", style = MaterialTheme.typography.headlineLarge)
-            Spacer(Modifier.height(12.dp))
-            Text("Tus mascotas, sus recuerdos y su bienestar")
-            Spacer(Modifier.height(16.dp))
-            Text("Inicio de sesión con Google: próximamente")
-        }
+        val vm = ViewModelProvider(this, PetViewModelFactory(PetRepository(database.petDao())))[PetViewModel::class.java]
+        setContent { MaterialTheme { PetsScreen(vm) } }
     }
 }
