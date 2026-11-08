@@ -58,6 +58,9 @@ class ReminderWorker(context: Context, parameters: WorkerParameters) : Coroutine
         val id = inputData.getString("id") ?: return Result.failure()
         val title = inputData.getString("title") ?: return Result.failure()
         if (!ReminderNotifications.hasPermission(applicationContext)) return Result.success()
+        val history = applicationContext.getSharedPreferences("reminder_history", Context.MODE_PRIVATE)
+        val today = java.time.LocalDate.now().toString()
+        if (history.getString(id, null) == today) return Result.success()
 
         val manager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(NotificationChannel(
@@ -74,6 +77,7 @@ class ReminderWorker(context: Context, parameters: WorkerParameters) : Coroutine
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .build()
         manager.notify(id.hashCode(), notification)
+        history.edit().putString(id, today).apply()
         return Result.success()
     }
 }
