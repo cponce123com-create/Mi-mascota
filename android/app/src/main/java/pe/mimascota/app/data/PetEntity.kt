@@ -9,5 +9,9 @@ data class PetEntity(
     val name: String,
     val species: String,
     val birthDate: String?,
-    val createdAt: Long
+    val createdAt: Long,
+    val breed: String? = null,
+    val weightKg: Float? = null,
+    val sterilized: Boolean? = null,
+    val microchip: String? = null
 )
