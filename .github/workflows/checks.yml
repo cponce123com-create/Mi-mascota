@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install
+      - run: npm install --no-audit --no-fund
         working-directory: backend
       - run: npx prisma validate
         working-directory: backend
@@ -28,5 +28,5 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - run: gradle :app:assembleDebug :app:testDebugUnitTest --no-daemon
+      - run: gradle :app:assembleDebug :app:testDebugUnitTest --no-daemon --stacktrace --console=plain
         working-directory: android
