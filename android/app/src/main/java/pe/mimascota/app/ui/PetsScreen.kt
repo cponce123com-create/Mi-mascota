@@ -1,6 +1,9 @@
 package pe.mimascota.app.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -16,11 +19,12 @@ fun PetsScreen(viewModel: PetViewModel, onHealth: (String) -> Unit, onPhotos: (S
     var species by remember { mutableStateOf("CAT") }
     var birthDate by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
+    var pendingDelete by remember { mutableStateOf<String?>(null) }
     Scaffold(topBar = { Text("🐾 Mi Mascota", modifier = Modifier.padding(20.dp), style = MaterialTheme.typography.headlineMedium) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Text("Registra a tus compañeros", style = MaterialTheme.typography.titleMedium)
-            Row { TextButton(onClick = onCommunity) { Text("Comunidad") }; TextButton(onClick = onCompanion) { Text("Compañero virtual") } }
-            Row { TextButton(onClick = onBackup) { Text("Exportar") }; TextButton(onClick = onVets) { Text("Veterinarias") } }
+            Row(Modifier.horizontalScroll(rememberScrollState())) { TextButton(onClick = onCommunity) { Text("Comunidad") }; TextButton(onClick = onCompanion) { Text("Compañero virtual") } }
+            Row(Modifier.horizontalScroll(rememberScrollState())) { TextButton(onClick = onBackup) { Text("Exportar") }; TextButton(onClick = onVets) { Text("Veterinarias") } }
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Row {
@@ -43,11 +47,18 @@ fun PetsScreen(viewModel: PetViewModel, onHealth: (String) -> Unit, onPhotos: (S
                     ListItem(
                         headlineContent = { Text(pet.name) },
                         supportingContent = { Text((if (pet.species == "CAT") "Gato" else "Perro") + (pet.birthDate?.let { " · Nació: $it" } ?: "")) },
-                        trailingContent = { Row { TextButton(onClick = { onHealth(pet.id) }) { Text("Salud") }; TextButton(onClick = { onPhotos(pet.id) }) { Text("Fotos") }; TextButton(onClick = { onExpenses(pet.id) }) { Text("Gastos") }; TextButton(onClick = { viewModel.remove(pet.id) }) { Text("Eliminar") } } }
+                        trailingContent = { Row(Modifier.horizontalScroll(rememberScrollState()).widthIn(max = 180.dp)) { TextButton(onClick = { onHealth(pet.id) }) { Text("Salud") }; TextButton(onClick = { onPhotos(pet.id) }) { Text("Fotos") }; TextButton(onClick = { onExpenses(pet.id) }) { Text("Gastos") }; TextButton(onClick = { pendingDelete = pet.id }) { Text("Eliminar") } } }
                     )
                     HorizontalDivider()
                 }
             }
         }
     }
+    if (pendingDelete != null) AlertDialog(
+        onDismissRequest = { pendingDelete = null },
+        title = { Text("Eliminar mascota") },
+        text = { Text("También se eliminarán sus vacunas, fotos, recordatorios y gastos guardados en este dispositivo.") },
+        confirmButton = { TextButton(onClick = { pendingDelete?.let(viewModel::remove); pendingDelete = null }) { Text("Eliminar") } },
+        dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancelar") } }
+    )
 }
