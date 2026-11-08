@@ -1,9 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { prisma as db } from '../db.js';
 import { authenticatedUser } from '../auth.js';
 
-const db = new PrismaClient();
 const idSchema = z.object({ petId: z.string().uuid() });
 const vaccineSchema = z.object({ name: z.string().trim().min(1).max(120), administeredAt: z.string().datetime().optional(), nextDueAt: z.string().datetime().optional() });
 const reminderSchema = z.object({ title: z.string().trim().min(1).max(160), dueAt: z.string().datetime() });
