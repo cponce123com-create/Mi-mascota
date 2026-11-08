@@ -22,6 +22,7 @@ import pe.mimascota.app.BuildConfig
 import pe.mimascota.app.auth.GoogleSignInManager
 import pe.mimascota.app.data.CommunityApi
 import pe.mimascota.app.data.communityToken
+import pe.mimascota.app.data.PushSubscription
 
 @Composable
 fun AccountScreen(
@@ -74,10 +75,17 @@ fun AccountScreen(
                         }) { Text(if (busy) "Conectando..." else "Continuar con Google") }
                     } else {
                         Text("Sesión iniciada")
-                        OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = {
-                            GoogleSignInManager(activity, BuildConfig.GOOGLE_WEB_CLIENT_ID).signOut()
-                            uid = null
-                            message = "Sesión cerrada."
+                        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
+                            busy = true
+                            scope.launch {
+                                val wasEnabled = PushSubscription.isEnabled(activity)
+                                val revoked = if (wasEnabled) PushSubscription.disable(activity) else true
+                                GoogleSignInManager(activity, BuildConfig.GOOGLE_WEB_CLIENT_ID).signOut()
+                                uid = null
+                                message = if (revoked) "Sesión cerrada."
+                                    else "Sesión cerrada; no se pudo confirmar la revocación de avisos del servidor."
+                                busy = false
+                            }
                         }) { Text("Cerrar sesión") }
                     }
                 }
@@ -96,6 +104,7 @@ fun AccountScreen(
                         modifier = Modifier.fillMaxWidth()) { Text("Borrar datos del dispositivo") }
                     if (configured && uid != null && apiConfigured) {
                         Text("También puedes eliminar tus registros del servidor y tu identidad Firebase cuando sea posible.")
+                        PushSettings()
                         OutlinedButton(onClick = { eraseTarget = "REMOTE" },
                             modifier = Modifier.fillMaxWidth()) { Text("Eliminar mi cuenta online") }
                         OutlinedButton(onClick = onModeration, modifier = Modifier.fillMaxWidth()) {
@@ -132,6 +141,7 @@ fun AccountScreen(
                             val token = communityToken() ?: throw IllegalStateException("Inicia sesión.")
                             CommunityApi(BuildConfig.API_BASE_URL).deleteRemoteAccount(token)
                         }.onSuccess {
+                            runCatching { PushSubscription.disable(activity) }
                             val authDelete = runCatching {
                                 FirebaseAuth.getInstance().currentUser?.delete()?.await()
                             }
