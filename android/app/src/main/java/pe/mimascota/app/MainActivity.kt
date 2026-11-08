@@ -4,6 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
@@ -74,15 +83,20 @@ class MainActivity : ComponentActivity() {
         Room.databaseBuilder(applicationContext, AppDatabase::class.java, "mi-mascota.db")
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val vm = ViewModelProvider(this, PetViewModelFactory(PetRepository(database.petDao())))[PetViewModel::class.java]
         setContent {
             var destination by remember { mutableStateOf<Destination>(Destination.Pets) }
+            var selectedPetId by rememberSaveable { mutableStateOf<String?>(null) }
+            var petsRequest by remember { mutableIntStateOf(0) }
+            var addRequest by remember { mutableIntStateOf(0) }
             val allPets by vm.pets.collectAsStateWithLifecycle()
             val allPhotos by database.healthDao().allPhotos().collectAsStateWithLifecycle(emptyList())
             val goBack = { destination = Destination.Pets }
             androidx.activity.compose.BackHandler(destination != Destination.Pets) { goBack() }
+
             MaterialTheme(
                 colorScheme = lightColorScheme(
                     primary = Color(0xFF008E77),
@@ -94,39 +108,83 @@ class MainActivity : ComponentActivity() {
                     error = Color(0xFFB3261E)
                 )
             ) {
-                when (val page = destination) {
-                    Destination.Pets -> PetsScreen(vm, photos = allPhotos,
-                        onHealth = { destination = Destination.Health(it) },
-                        onPhotos = { destination = Destination.Photos(it) },
-                        onExpenses = { destination = Destination.Expenses(it) },
-                        onCommunity = { destination = Destination.Community },
-                        onCompanion = { destination = Destination.Companion },
-                        onBackup = { destination = Destination.Backup },
-                        onVets = { destination = Destination.Vets },
-                        onAccount = { destination = Destination.Account },
-                        onAdoption = { destination = Destination.Adoption },
-                        onLost = { destination = Destination.Lost },
-                        onProfile = { destination = Destination.Profile(it) })
-                    Destination.Community -> CommunityScreen(onBack = goBack, onAccount = { destination = Destination.Account })
-                    Destination.Companion -> CompanionScreen(onBack = goBack)
-                    Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
-                    Destination.Account -> AccountScreen(onBack = goBack, onModeration = { destination = Destination.Moderation })
-                    Destination.Moderation -> ModerationScreen(onBack = { destination = Destination.Account })
-                    Destination.Adoption -> DiscoverScreen("adoption", pets = allPets, onBack = goBack,
-                        onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets },
-                        onAccount = { destination = Destination.Account })
-                    Destination.Lost -> DiscoverScreen("lost", pets = allPets, onBack = goBack,
-                        onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets },
-                        onAccount = { destination = Destination.Account })
-                    Destination.Vets -> VetMapScreen(onBack = goBack)
-                    is Destination.Profile -> PetProfileScreen(allPets.firstOrNull { it.id == page.petId },
-                        database.healthDao(), database.expenseDao(), vm, onBack = goBack,
-                        onHealth = { destination = Destination.Health(page.petId) },
-                        onPhotos = { destination = Destination.Photos(page.petId) },
-                        onExpenses = { destination = Destination.Expenses(page.petId) })
-                    is Destination.Health -> HealthScreen(page.petId, database.healthDao(), onBack = goBack)
-                    is Destination.Photos -> PhotoScreen(page.petId, database.healthDao(), onBack = goBack)
-                    is Destination.Expenses -> ExpenseScreen(page.petId, database.expenseDao(), onBack = goBack)
+                Scaffold(
+                    containerColor = Color(0xFFF0F8FA),
+                    bottomBar = {
+                        NavigationBar(containerColor = Color.White) {
+                            NavigationBarItem(
+                                selected = destination == Destination.Pets,
+                                onClick = { destination = Destination.Pets },
+                                icon = { Text("🏠") }, label = { Text("Inicio") }
+                            )
+                            NavigationBarItem(
+                                selected = destination is Destination.Profile,
+                                onClick = { petsRequest++; destination = Destination.Pets },
+                                icon = { Text("🐾") }, label = { Text("Mascotas") }
+                            )
+                            NavigationBarItem(
+                                selected = false,
+                                onClick = { addRequest++; destination = Destination.Pets },
+                                icon = { Text("➕") }, label = { Text("Agregar") }
+                            )
+                            NavigationBarItem(
+                                selected = destination == Destination.Community,
+                                onClick = { destination = Destination.Community },
+                                icon = { Text("👥") }, label = { Text("Comunidad") }
+                            )
+                            NavigationBarItem(
+                                selected = destination == Destination.Account || destination == Destination.Moderation,
+                                onClick = { destination = Destination.Account },
+                                icon = { Text("👤") }, label = { Text("Cuenta") }
+                            )
+                        }
+                    }
+                ) { screenPadding ->
+                    Box(Modifier.fillMaxSize().padding(screenPadding)) {
+                        when (val page = destination) {
+                            Destination.Pets -> PetsScreen(vm,
+                                photos = allPhotos, selectedId = selectedPetId,
+                                onSelectPet = { selectedPetId = it },
+                                openPetsToken = petsRequest, openAddToken = addRequest,
+                                onHealth = { destination = Destination.Health(it) },
+                                onPhotos = { destination = Destination.Photos(it) },
+                                onExpenses = { destination = Destination.Expenses(it) },
+                                onCommunity = { destination = Destination.Community },
+                                onCompanion = { destination = Destination.Companion },
+                                onBackup = { destination = Destination.Backup },
+                                onVets = { destination = Destination.Vets },
+                                onAccount = { destination = Destination.Account },
+                                onAdoption = { destination = Destination.Adoption },
+                                onLost = { destination = Destination.Lost },
+                                onProfile = { destination = Destination.Profile(it) })
+                            Destination.Community -> CommunityScreen(onBack = goBack,
+                                onAccount = { destination = Destination.Account })
+                            Destination.Companion -> CompanionScreen(onBack = goBack)
+                            Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
+                            Destination.Account -> AccountScreen(onBack = goBack,
+                                onModeration = { destination = Destination.Moderation })
+                            Destination.Moderation -> ModerationScreen(
+                                onBack = { destination = Destination.Account })
+                            Destination.Adoption -> DiscoverScreen("adoption", pets = allPets, onBack = goBack,
+                                onCommunity = { destination = Destination.Community },
+                                onVets = { destination = Destination.Vets },
+                                onAccount = { destination = Destination.Account })
+                            Destination.Lost -> DiscoverScreen("lost", pets = allPets, onBack = goBack,
+                                onCommunity = { destination = Destination.Community },
+                                onVets = { destination = Destination.Vets },
+                                onAccount = { destination = Destination.Account })
+                            Destination.Vets -> VetMapScreen(onBack = goBack)
+                            is Destination.Profile -> PetProfileScreen(
+                                allPets.firstOrNull { it.id == page.petId },
+                                database.healthDao(), database.expenseDao(), vm, onBack = goBack,
+                                onHealth = { destination = Destination.Health(page.petId) },
+                                onPhotos = { destination = Destination.Photos(page.petId) },
+                                onExpenses = { destination = Destination.Expenses(page.petId) })
+                            is Destination.Health -> HealthScreen(page.petId, database.healthDao(), onBack = goBack)
+                            is Destination.Photos -> PhotoScreen(page.petId, database.healthDao(), onBack = goBack)
+                            is Destination.Expenses -> ExpenseScreen(page.petId, database.expenseDao(), onBack = goBack)
+                        }
+                    }
                 }
             }
         }
