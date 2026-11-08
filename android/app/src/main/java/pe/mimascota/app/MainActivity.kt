@@ -37,6 +37,7 @@ import pe.mimascota.app.ui.PetsScreen
 import pe.mimascota.app.ui.PetProfileScreen
 import pe.mimascota.app.ui.ModerationScreen
 import pe.mimascota.app.notifications.ReminderNotifications
+import pe.mimascota.app.data.PushSubscription
 import pe.mimascota.app.data.CompanionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -182,6 +183,10 @@ class MainActivity : ComponentActivity() {
                                 onBackup = { destination = Destination.Backup },
                                 onEraseLocal = {
                                     withContext(Dispatchers.IO) {
+                                        if (PushSubscription.isEnabled(applicationContext)) {
+                                            PushSubscription.disable(applicationContext)
+                                        }
+                                        getSharedPreferences("mi_mascota_push", MODE_PRIVATE).edit().clear().apply()
                                         database.healthDao().allReminders().first().forEach {
                                             ReminderNotifications.cancel(applicationContext, it.id)
                                         }
