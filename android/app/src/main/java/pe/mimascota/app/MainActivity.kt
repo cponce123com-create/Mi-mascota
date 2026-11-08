@@ -92,6 +92,9 @@ class MainActivity : ComponentActivity() {
             var selectedPetId by rememberSaveable { mutableStateOf<String?>(null) }
             var petsRequest by remember { mutableIntStateOf(0) }
             var addRequest by remember { mutableIntStateOf(0) }
+            LaunchedEffect(destination) {
+                if (destination != Destination.Pets) { petsRequest = 0; addRequest = 0 }
+            }
             val allPets by vm.pets.collectAsStateWithLifecycle()
             val allPhotos by database.healthDao().allPhotos().collectAsStateWithLifecycle(emptyList())
             val goBack = { destination = Destination.Pets }
