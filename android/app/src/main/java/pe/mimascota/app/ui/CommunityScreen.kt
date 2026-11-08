@@ -1,82 +1,131 @@
 package pe.mimascota.app.ui
 
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import pe.mimascota.app.BuildConfig
 import pe.mimascota.app.data.CommunityApi
 import pe.mimascota.app.data.CommunityPost
 import pe.mimascota.app.data.LostPetListing
+import pe.mimascota.app.data.communityToken
 
 @Composable
-fun CommunityScreen(onBack: () -> Unit) {
+fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
+    val api = remember { CommunityApi(BuildConfig.API_BASE_URL) }
+    val configured = BuildConfig.API_BASE_URL.startsWith("https://")
     var posts by remember { mutableStateOf<List<CommunityPost>>(emptyList()) }
     var lost by remember { mutableStateOf<List<LostPetListing>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var message by remember { mutableStateOf<String?>(null) }
     var tab by remember { mutableIntStateOf(0) }
-    val configured = BuildConfig.API_BASE_URL.startsWith("https://")
+    var composing by remember { mutableStateOf(false) }
+    var title by remember { mutableStateOf("") }
+    var body by remember { mutableStateOf("") }
+    var sending by remember { mutableStateOf(false) }
     fun refresh() {
         if (!configured || loading) return
         loading = true
         scope.launch {
             runCatching {
-                val api = CommunityApi(BuildConfig.API_BASE_URL)
                 val newPosts = api.posts()
                 val newLost = api.lostPets()
                 posts = newPosts
                 lost = newLost
-            }.onFailure { error = "No se pudo conectar. Comprueba internet o intenta más tarde." }
+            }.onFailure { error = "No se pudo cargar la comunidad: ${it.message}" }
                 .onSuccess { error = null }
             loading = false
         }
     }
     LaunchedEffect(configured) { if (configured) refresh() }
-    Column(Modifier.fillMaxSize().background(Color(0xFFF0F8FA)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        TextButton(onClick = onBack) { Text("Volver") }
-        Text("👥 Comunidad Mascotera", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF006574), fontWeight = FontWeight.Bold)
-        Text("Historias, apoyo y mascotas que nos unen")
-        ElevatedCard { Column(Modifier.padding(14.dp)) {
-            Text("📣 Comparte con la comunidad", style = MaterialTheme.typography.titleMedium)
-            Text("Publicaciones, comentarios y reportes nuevos estarán disponibles al integrar autenticación y moderación.")
-        } }
-        if (!configured) {
-            Text("La comunidad en línea aún no está configurada. Las funciones locales siguen disponibles.")
-            Text("Configura API_BASE_URL en el proyecto Android para activar las consultas.")
-        } else {
-            Row {
+    Column(Modifier.fillMaxSize().background(Color(0xFFF0F8FA))) {
+        Column(Modifier.fillMaxWidth().background(Color(0xFF006574)).padding(16.dp)) {
+            TextButton(onClick = onBack) { Text("← Volver", color = Color.White) }
+            Text("👥 Comunidad Mascotera", style = MaterialTheme.typography.headlineMedium,
+                color = Color.White, fontWeight = FontWeight.Bold)
+            Text("Historias, apoyo y mascotas que nos unen", color = Color.White)
+        }
+        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("Publicaciones") })
-                Spacer(Modifier.width(8.dp))
                 FilterChip(selected = tab == 1, onClick = { tab = 1 }, label = { Text("Perdidos") })
             }
-            OutlinedButton(onClick = { refresh() }, enabled = !loading) { Text("Actualizar") }
-            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            LazyColumn {
-                if (tab == 0) {
-                    if (posts.isEmpty() && !loading && error == null) item { Text("No hay publicaciones todavía.") }
-                    items(posts) { post ->
-                        ListItem(headlineContent = { Text(post.title) }, supportingContent = { Text(post.body) })
-                        HorizontalDivider()
-                    }
-                } else {
-                    if (lost.isEmpty() && !loading && error == null) item { Text("No hay alertas activas.") }
-                    items(lost) { pet ->
-                        ListItem(headlineContent = { Text(pet.name) },
-                            supportingContent = { Text("${pet.species} · ${pet.district ?: "Distrito no indicado"}") })
-                        HorizontalDivider()
+            if (!configured) {
+                Text("El servidor comunitario HTTPS no está configurado. Tus datos locales siguen disponibles.")
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { composing = true }, modifier = Modifier.weight(1f)) { Text("✍️ Publicar") }
+                    OutlinedButton(onClick = { refresh() }, enabled = !loading) { Text("↻ Actualizar") }
+                }
+                message?.let { Text(it, color = Color(0xFF006574)) }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (tab == 0) {
+                        if (posts.isEmpty() && !loading && error == null) item { Text("Aún no hay publicaciones aprobadas.") }
+                        items(posts) { post ->
+                            ElevatedCard(shape = RoundedCornerShape(18.dp)) {
+                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("🐾 ${post.title}", style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold)
+                                    Text(post.body)
+                                }
+                            }
+                        }
+                    } else {
+                        if (lost.isEmpty() && !loading && error == null) item { Text("No hay alertas aprobadas activas.") }
+                        items(lost) { pet ->
+                            ElevatedCard(shape = RoundedCornerShape(18.dp)) {
+                                Column(Modifier.padding(16.dp)) {
+                                    Text("📢 ${pet.name}", style = MaterialTheme.typography.titleMedium)
+                                    Text("${pet.species} · ${pet.district ?: "Distrito sin indicar"}")
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
+    if (composing) AlertDialog(
+        onDismissRequest = { if (!sending) composing = false },
+        title = { Text("✍️ Nueva publicación") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Las publicaciones requieren inicio de sesión y aprobación antes de hacerse públicas.")
+                OutlinedTextField(title, { title = it }, label = { Text("Título (3–120 caracteres)") })
+                OutlinedTextField(body, { body = it }, label = { Text("Historia (5–3000 caracteres)") },
+                    minLines = 3, maxLines = 6)
+            }
+        },
+        confirmButton = { Button(enabled = !sending && configured &&
+            title.trim().length in 3..120 && body.trim().length in 5..3000, onClick = {
+            sending = true
+            scope.launch {
+                runCatching {
+                    val token = communityToken() ?: error("Inicia sesión con Google en Mi cuenta.")
+                    api.post(title.trim(), body.trim(), token)
+                }.onSuccess {
+                    composing = false
+                    title = ""; body = ""
+                    message = "Publicación recibida. Se mostrará después de la revisión."
+                }.onFailure { message = it.message ?: "No fue posible publicar." }
+                sending = false
+            }
+        }) { Text(if (sending) "Enviando..." else "Enviar a revisión") } },
+        dismissButton = {
+            TextButton(enabled = !sending, onClick = { composing = false; onAccount() }) { Text("Mi cuenta") }
+            TextButton(enabled = !sending, onClick = { composing = false }) { Text("Cancelar") }
+        }
+    )
 }
