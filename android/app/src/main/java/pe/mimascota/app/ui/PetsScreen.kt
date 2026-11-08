@@ -51,6 +51,10 @@ private fun DashboardTile(icon: String, label: String, tint: Color, modifier: Mo
 fun PetsScreen(
     viewModel: PetViewModel,
     photos: List<PhotoEntity>,
+    selectedId: String?,
+    onSelectPet: (String?) -> Unit,
+    openPetsToken: Int,
+    openAddToken: Int,
     onHealth: (String) -> Unit,
     onPhotos: (String) -> Unit,
     onExpenses: (String) -> Unit,
@@ -64,7 +68,6 @@ fun PetsScreen(
     onProfile: (String) -> Unit
 ) {
     val pets by viewModel.pets.collectAsStateWithLifecycle()
-    var selectedId by remember { mutableStateOf<String?>(null) }
     val activePet = pets.firstOrNull { it.id == selectedId } ?: pets.firstOrNull()
     var showAdd by remember { mutableStateOf(false) }
     var showPets by remember { mutableStateOf(false) }
@@ -75,23 +78,14 @@ fun PetsScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var pendingDelete by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
+    LaunchedEffect(openPetsToken) { if (openPetsToken > 0) showPets = true }
+    LaunchedEffect(openAddToken) { if (openAddToken > 0) showAdd = true }
     fun withPet(action: (String) -> Unit) {
         val id = activePet?.id
         if (id != null) action(id) else showAdd = true
     }
 
-    Scaffold(
-        containerColor = Canvas,
-        bottomBar = {
-            NavigationBar(containerColor = Color.White) {
-                NavigationBarItem(selected = true, onClick = {}, icon = { Text("🏠") }, label = { Text("Inicio") })
-                NavigationBarItem(selected = false, onClick = { showPets = true }, icon = { Text("🐾") }, label = { Text("Mascotas") })
-                NavigationBarItem(selected = false, onClick = { showAdd = true }, icon = { Text("➕") }, label = { Text("Agregar") })
-                NavigationBarItem(selected = false, onClick = onCommunity, icon = { Text("👥") }, label = { Text("Comunidad") })
-                NavigationBarItem(selected = false, onClick = onAccount, icon = { Text("👤") }, label = { Text("Cuenta") })
-            }
-        }
-    ) { padding ->
+    Scaffold(containerColor = Canvas) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -117,7 +111,7 @@ fun PetsScreen(
                             horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                             pets.forEach { pet ->
                                 val chosen = activePet?.id == pet.id
-                                Column(Modifier.width(80.dp).clickable { selectedId = pet.id },
+                                Column(Modifier.width(80.dp).clickable { onSelectPet(pet.id) },
                                     horizontalAlignment = Alignment.CenterHorizontally) {
                                     Box(Modifier.size(58.dp).clip(CircleShape)
                                         .background(if (chosen) Color(0xFFB5F4C6) else Color(0xFFDCECF7)),
@@ -210,7 +204,7 @@ fun PetsScreen(
                 if (pets.isEmpty()) Text("Aún no has registrado mascotas.")
                 pets.forEach { pet ->
                     OutlinedButton(
-                        onClick = { selectedId = pet.id; showPets = false },
+                        onClick = { onSelectPet(pet.id); showPets = false },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("${if (pet.species == "DOG") "🐶" else "🐱"} ${pet.name}")
@@ -290,7 +284,7 @@ fun PetsScreen(
         text = { Text("Se eliminarán los datos locales asociados a esta mascota. Esta acción no se puede deshacer.") },
         confirmButton = { TextButton(onClick = {
             pendingDelete?.let { id -> viewModel.remove(id) { failure -> error = failure } }
-            selectedId = null
+            onSelectPet(null)
             pendingDelete = null
         }) { Text("Eliminar") } },
         dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancelar") } }
