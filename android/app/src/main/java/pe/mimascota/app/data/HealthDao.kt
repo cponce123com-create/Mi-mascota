@@ -10,11 +10,15 @@ interface HealthDao {
     @Query("SELECT * FROM vaccines WHERE petId = :petId ORDER BY dueAt")
     fun vaccines(petId: String): Flow<List<VaccineEntity>>
     @Insert suspend fun addVaccine(vaccine: VaccineEntity)
+    @Query("DELETE FROM vaccines WHERE id = :id")
+    suspend fun deleteVaccine(id: String)
     @Query("SELECT * FROM reminders ORDER BY dueAt")
     fun allReminders(): Flow<List<ReminderEntity>>
     @Query("SELECT * FROM reminders WHERE petId = :petId ORDER BY dueAt")
     fun reminders(petId: String): Flow<List<ReminderEntity>>
     @Insert suspend fun addReminder(reminder: ReminderEntity)
+    @Query("DELETE FROM reminders WHERE id = :id")
+    suspend fun deleteReminder(id: String)
     @Query("UPDATE reminders SET completed = :completed WHERE id = :id")
     suspend fun completeReminder(id: String, completed: Boolean)
     @Query("SELECT * FROM photos ORDER BY createdAt DESC")
