@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun PetsScreen(viewModel: PetViewModel) {
+fun PetsScreen(viewModel: PetViewModel, onHealth: (String) -> Unit) {
     val pets by viewModel.pets.collectAsStateWithLifecycle()
     var name by remember { mutableStateOf("") }
     var species by remember { mutableStateOf("CAT") }
@@ -41,7 +41,7 @@ fun PetsScreen(viewModel: PetViewModel) {
                     ListItem(
                         headlineContent = { Text(pet.name) },
                         supportingContent = { Text((if (pet.species == "CAT") "Gato" else "Perro") + (pet.birthDate?.let { " · Nació: $it" } ?: "")) },
-                        trailingContent = { TextButton(onClick = { viewModel.remove(pet.id) }) { Text("Eliminar") } }
+                        trailingContent = { Row { TextButton(onClick = { onHealth(pet.id) }) { Text("Salud") }; TextButton(onClick = { viewModel.remove(pet.id) }) { Text("Eliminar") } } }
                     )
                     HorizontalDivider()
                 }
