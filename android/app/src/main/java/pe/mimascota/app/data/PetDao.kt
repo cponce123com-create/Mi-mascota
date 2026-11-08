@@ -14,6 +14,9 @@ interface PetDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(pet: PetEntity)
 
+    @Query("UPDATE pets SET name = :name, species = :species, birthDate = :birthDate WHERE id = :id")
+    suspend fun updateDetails(id: String, name: String, species: String, birthDate: String?)
+
     @Query("DELETE FROM pets WHERE id = :id")
     suspend fun delete(id: String)
 }
