@@ -7,6 +7,7 @@ import { adoptionRoutes } from './routes/adoptions.js';
 import { moderationRoutes } from './routes/moderation.js';
 import { accountRoutes } from './routes/account.js';
 import { deviceRoutes } from './routes/devices.js';
+import { adoptionChatRoutes } from './routes/adoption-chat.js';
 
 export function buildApp() {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test', bodyLimit: 1_000_000 });
@@ -19,6 +20,7 @@ export function buildApp() {
   app.register(moderationRoutes);
   app.register(accountRoutes);
   app.register(deviceRoutes);
+  app.register(adoptionChatRoutes);
   return app;
 }
 
