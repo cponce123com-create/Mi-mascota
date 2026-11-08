@@ -10,10 +10,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import pe.mimascota.app.backup.BackupExporter
-import pe.mimascota.app.data.PetDao
+import pe.mimascota.app.data.BackupDao
 
 @Composable
-fun BackupScreen(dao: PetDao, onBack: () -> Unit) {
+fun BackupScreen(dao: BackupDao, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var message by remember { mutableStateOf("") }
@@ -26,8 +26,8 @@ fun BackupScreen(dao: PetDao, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         TextButton(onClick = onBack) { Text("Volver") }
         Text("Exportar mis mascotas", style = MaterialTheme.typography.headlineSmall)
-        Text("Exporta los nombres, especies y fechas de nacimiento a un archivo JSON. Puedes elegir Google Drive como destino si está disponible en el selector de Android.")
-        Text("Este archivo NO incluye fotos, vacunas, recordatorios ni gastos. Todavía no existe restauración automática.")
+        Text("Exporta mascotas, vacunas, recordatorios, gastos y referencias a fotos en JSON. Puedes elegir Google Drive como destino si está disponible en el selector de Android.")
+        Text("El archivo NO incluye los bytes de las fotografías y todavía no existe restauración automática. El JSON no está cifrado: guárdalo en un lugar privado.")
         Spacer(Modifier.height(12.dp))
         Button(onClick = { launcher.launch("mi-mascota-respaldo.json") }) { Text("Guardar archivo") }
         Text(message)
