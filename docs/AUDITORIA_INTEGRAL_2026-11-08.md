@@ -47,3 +47,9 @@ Backend: Fastify, rutas de mascotas, salud y comunidad, Prisma y CI.
 5. Validar privacidad, seguridad de respaldos y accesibilidad con usuarios reales.
 
 **Nota:** Auditoría estática; no se afirma que los binarios compilen ni que el cableado online funcione en un servidor desplegado.
+
+## Correcciones adicionales de esta iteración
+- Pantalla de cuenta y acceso con Google opcional conectada desde el inicio.
+- Identificador de cliente OAuth configurable mediante propiedad Gradle.
+- Guardado de vacunas y recordatorios con bloqueo de doble pulsación y errores visibles.
+- Se mantiene como pendiente la verificación del build en GitHub Actions, la conexión Firebase real y la integración completa de escritura comunitaria.
