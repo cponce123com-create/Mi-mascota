@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma as db } from '../db.js';
 import { authenticatedUser } from '../auth.js';
+import { notifyAccount } from '../push.js';
 
 const listingInput = z.object({
   petName: z.string().trim().min(1).max(80),
@@ -73,6 +74,7 @@ export async function adoptionRoutes(app: FastifyInstance) {
     const application = await db.adoptionApplication.create({ data: {
       listingId: listing.id, applicantId: user.id, message: body.data.message
     } });
+    await notifyAccount(listing.authorId, 'Mi Mascota', 'Tienes una nueva solicitud de adopción.');
     return reply.code(201).send({ id: application.id, status: application.status });
   });
 
