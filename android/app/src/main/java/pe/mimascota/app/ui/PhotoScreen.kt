@@ -57,7 +57,8 @@ fun PhotoScreen(petId: String, dao: HealthDao, onBack: () -> Unit) {
                     trailingContent = {
                         Row {
                         TextButton(onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(photo.uri)).apply {
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(Uri.parse(photo.uri), "image/*")
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
                             runCatching { context.startActivity(intent) }.onFailure { error = "No se puede abrir la imagen" }
