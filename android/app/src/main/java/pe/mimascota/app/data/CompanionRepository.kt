@@ -25,6 +25,15 @@ object CompanionRepository {
         CompanionStats(prefs[ENERGY] ?: 70, prefs[HAPPINESS] ?: 70,
             prefs[PLAYS] ?: 0, prefs[SCORE] ?: 0)
     }
+    suspend fun reset(context: Context) {
+        context.virtualCompanion.edit {
+            it.remove(ENERGY)
+            it.remove(HAPPINESS)
+            it.remove(PLAYS)
+            it.remove(SCORE)
+        }
+    }
+
     suspend fun rest(context: Context) {
         context.virtualCompanion.edit {
             it[ENERGY] = ((it[ENERGY] ?: 70) + 20).coerceAtMost(100)
