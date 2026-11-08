@@ -1,9 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { prisma as db } from '../db.js';
 import { authenticatedUser } from '../auth.js';
 
-const db = new PrismaClient();
 const listingInput = z.object({
   petName: z.string().trim().min(1).max(80),
   species: z.enum(['CAT', 'DOG', 'OTHER']),
