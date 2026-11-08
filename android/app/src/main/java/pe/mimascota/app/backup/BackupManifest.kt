@@ -2,17 +2,21 @@ package pe.mimascota.app.backup
 
 import org.json.JSONArray
 import org.json.JSONObject
-import pe.mimascota.app.data.PetEntity
+import pe.mimascota.app.data.BackupSnapshot
 
-/** Backup metadata only. Photo bytes must be exported separately with explicit user consent. */
+/** Portable JSON metadata; references to photos are not photo contents. */
 object BackupManifest {
-    const val VERSION = 1
-    fun encode(pets: List<PetEntity>): String {
-        val rows = JSONArray()
-        pets.forEach { pet ->
-            rows.put(JSONObject().put("id", pet.id).put("name", pet.name)
-                .put("species", pet.species).put("birthDate", pet.birthDate))
-        }
-        return JSONObject().put("version", VERSION).put("pets", rows).toString()
+    const val VERSION = 2
+    fun encode(snapshot: BackupSnapshot): String {
+        fun rows(items: List<JSONObject>): JSONArray = JSONArray().apply { items.forEach(::put) }
+        return JSONObject()
+            .put("version", VERSION)
+            .put("exportedAt", java.time.Instant.now().toString())
+            .put("pets", rows(snapshot.pets.map { JSONObject().put("id", it.id).put("name", it.name).put("species", it.species).put("birthDate", it.birthDate).put("createdAt", it.createdAt) }))
+            .put("vaccines", rows(snapshot.vaccines.map { JSONObject().put("id", it.id).put("petId", it.petId).put("name", it.name).put("appliedAt", it.appliedAt).put("dueAt", it.dueAt) }))
+            .put("reminders", rows(snapshot.reminders.map { JSONObject().put("id", it.id).put("petId", it.petId).put("title", it.title).put("dueAt", it.dueAt).put("completed", it.completed) }))
+            .put("expenses", rows(snapshot.expenses.map { JSONObject().put("id", it.id).put("petId", it.petId).put("title", it.title).put("amountCents", it.amountCents).put("date", it.date) }))
+            .put("photos", rows(snapshot.photos.map { JSONObject().put("id", it.id).put("petId", it.petId).put("uri", it.uri).put("createdAt", it.createdAt) }))
+            .toString()
     }
 }
