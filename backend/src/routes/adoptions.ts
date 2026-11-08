@@ -103,7 +103,13 @@ export async function adoptionRoutes(app: FastifyInstance) {
       where: { id: params.data.id, listing: { author: { googleSubject: uid }, status: 'APPROVED' } },
       data: { status: body.data.status }
     });
-    return updated.count ? { updated: true } : reply.code(404).send({ error: 'Not found' });
+    if (!updated.count) return reply.code(404).send({ error: 'Not found' });
+    const applicant = await db.adoptionApplication.findUnique({
+      where: { id: params.data.id }, select: { applicantId: true }
+    });
+    if (applicant) await notifyAccount(applicant.applicantId, 'Mi Mascota',
+      'Tu solicitud de adopción tiene una respuesta.');
+    return { updated: true };
   });
 
   app.patch('/v1/adoptions/:id/close', async (req, reply) => {
