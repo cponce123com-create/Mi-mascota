@@ -44,3 +44,21 @@ Las pantallas informativas de adopción y perdidos no simulan resultados ni soli
 - Pruebas y validación del APK actual mediante GitHub Actions.
 
 Las funciones que necesitan estos servicios **no deben presentarse como operativas** hasta completar su integración y las pruebas.
+
+## Revisión adicional (2026-11-08)
+El repositorio contiene ya implementaciones posteriores a la primera lista: perfiles ampliados, restauración de respaldos JSON/ZIP cifrado, notificaciones locales con WorkManager, mensajería push, chat de adopciones, moderación, mapa OpenStreetMap, minijuego persistente y API de adopciones. La presencia de código no certifica su funcionamiento en producción.
+
+Correcciones recientes:
+- Los recordatorios pendientes conservan el trabajo programado al refrescar Compose; ya no se reemplaza continuamente la tarea.
+- Se simplificó la solicitud de permiso de ubicación aproximada en el mapa.
+
+Pendientes verificables:
+1. Obtener y conservar una ejecución de CI verde de Android **y** backend para el commit más reciente; probar APK en dispositivo.
+2. Ejecutar pruebas de migración Room 1→4 y restauración JSON/ZIP, incluyendo archivos maliciosos, URIs revocadas y datos duplicados.
+3. Configurar Firebase, credenciales OAuth, base PostgreSQL, despliegue HTTPS, almacenamiento y push; comprobar extremo a extremo.
+4. Revisar políticas de privacidad, permisos, accesibilidad, seguridad del WebView, retención y moderación.
+5. Comparar todas las pantallas con el boceto original en distintos tamaños; faltan pruebas visuales automatizadas.
+6. Validar notificaciones con cambios de zona horaria, permisos, actualizaciones y reinicios.
+7. Pruebas de carga, costes, seguridad y publicación firmada en Play Store.
+
+No declarar estas tareas completas solo por existir ventanas o endpoints.
