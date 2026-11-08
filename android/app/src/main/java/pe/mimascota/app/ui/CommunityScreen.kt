@@ -1,6 +1,9 @@
 package pe.mimascota.app.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -38,9 +41,14 @@ fun CommunityScreen(onBack: () -> Unit) {
         }
     }
     LaunchedEffect(configured) { if (configured) refresh() }
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxSize().background(Color(0xFFF0F8FA)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         TextButton(onClick = onBack) { Text("Volver") }
-        Text("Comunidad Mascotera", style = MaterialTheme.typography.headlineSmall)
+        Text("👥 Comunidad Mascotera", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF006574), fontWeight = FontWeight.Bold)
+        Text("Historias, apoyo y mascotas que nos unen")
+        ElevatedCard { Column(Modifier.padding(14.dp)) {
+            Text("📣 Comparte con la comunidad", style = MaterialTheme.typography.titleMedium)
+            Text("Publicaciones, comentarios y reportes nuevos estarán disponibles al integrar autenticación y moderación.")
+        } }
         if (!configured) {
             Text("La comunidad en línea aún no está configurada. Las funciones locales siguen disponibles.")
             Text("Configura API_BASE_URL en el proyecto Android para activar las consultas.")
