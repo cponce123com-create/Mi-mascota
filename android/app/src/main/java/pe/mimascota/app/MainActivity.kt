@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import pe.mimascota.app.ui.HealthScreen
 import pe.mimascota.app.ui.PhotoScreen
@@ -63,7 +65,17 @@ class MainActivity : ComponentActivity() {
             var destination by remember { mutableStateOf<Destination>(Destination.Pets) }
             val goBack = { destination = Destination.Pets }
             androidx.activity.compose.BackHandler(destination != Destination.Pets) { goBack() }
-            MaterialTheme {
+            MaterialTheme(
+                colorScheme = lightColorScheme(
+                    primary = Color(0xFF008E77),
+                    onPrimary = Color.White,
+                    primaryContainer = Color(0xFFD8F5E8),
+                    secondary = Color(0xFF006A79),
+                    background = Color(0xFFF0F8FA),
+                    surface = Color.White,
+                    error = Color(0xFFB3261E)
+                )
+            ) {
                 when (val page = destination) {
                     Destination.Pets -> PetsScreen(vm,
                         onHealth = { destination = Destination.Health(it) },
