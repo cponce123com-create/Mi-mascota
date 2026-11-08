@@ -19,6 +19,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import android.net.Uri
+import android.widget.ImageView
+import pe.mimascota.app.data.PhotoEntity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private val Ocean = Color(0xFF006574)
@@ -46,6 +50,7 @@ private fun DashboardTile(icon: String, label: String, tint: Color, modifier: Mo
 @Composable
 fun PetsScreen(
     viewModel: PetViewModel,
+    photos: List<PhotoEntity>,
     onHealth: (String) -> Unit,
     onPhotos: (String) -> Unit,
     onExpenses: (String) -> Unit,
@@ -55,7 +60,8 @@ fun PetsScreen(
     onVets: () -> Unit,
     onAccount: () -> Unit,
     onAdoption: () -> Unit,
-    onLost: () -> Unit
+    onLost: () -> Unit,
+    onProfile: (String) -> Unit
 ) {
     val pets by viewModel.pets.collectAsStateWithLifecycle()
     var selectedId by remember { mutableStateOf<String?>(null) }
@@ -116,8 +122,16 @@ fun PetsScreen(
                                     Box(Modifier.size(58.dp).clip(CircleShape)
                                         .background(if (chosen) Color(0xFFB5F4C6) else Color(0xFFDCECF7)),
                                         contentAlignment = Alignment.Center) {
-                                        Text(if (pet.species == "DOG") "🐶" else if (pet.species == "CAT") "🐱" else "🐾",
-                                            style = MaterialTheme.typography.headlineLarge)
+                                        val uri = photos.firstOrNull { it.petId == pet.id }?.uri
+                                        if (uri == null) {
+                                            Text(if (pet.species == "DOG") "🐶" else if (pet.species == "CAT") "🐱" else "🐾",
+                                                style = MaterialTheme.typography.headlineLarge)
+                                        } else {
+                                            AndroidView(factory = { ctx -> ImageView(ctx).apply { scaleType = ImageView.ScaleType.CENTER_CROP } },
+                                                update = { image -> runCatching { image.setImageURI(Uri.parse(uri)) }
+                                                    .onFailure { image.setImageDrawable(null) } },
+                                                modifier = Modifier.fillMaxSize().clip(CircleShape))
+                                        }
                                     }
                                     Text(pet.name, maxLines = 1, fontWeight = if (chosen) FontWeight.Bold else FontWeight.Normal)
                                     if (chosen) Text("● Activa", color = Teal, style = MaterialTheme.typography.labelSmall)
@@ -139,6 +153,9 @@ fun PetsScreen(
                 Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(if (activePet == null) "Empieza registrando tu mascota" else "Cuidando a ${activePet.name} 💚",
                         style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Ocean)
+                    if (activePet != null) {
+                        TextButton(onClick = { onProfile(activePet.id) }) { Text("🐾 Ver ficha completa de ${activePet.name} ›") }
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         DashboardTile("💉", "Vacunas", Color(0xFF2465C5), Modifier.weight(1f)) { withPet(onHealth) }
                         DashboardTile("💗", "Salud", Color(0xFFD72672), Modifier.weight(1f)) { withPet(onHealth) }
