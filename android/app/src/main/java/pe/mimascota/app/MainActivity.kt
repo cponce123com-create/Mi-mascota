@@ -26,6 +26,7 @@ import pe.mimascota.app.ui.PetViewModel
 import pe.mimascota.app.ui.PetViewModelFactory
 import pe.mimascota.app.ui.PetsScreen
 import pe.mimascota.app.ui.PetProfileScreen
+import pe.mimascota.app.ui.ModerationScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private val MIGRATION_2_3 = object : Migration(2, 3) {
@@ -59,6 +60,7 @@ private sealed interface Destination {
     data object Backup : Destination
     data object Vets : Destination
     data object Account : Destination
+    data object Moderation : Destination
     data object Adoption : Destination
     data object Lost : Destination
     data class Profile(val petId: String) : Destination
@@ -108,7 +110,8 @@ class MainActivity : ComponentActivity() {
                     Destination.Community -> CommunityScreen(onBack = goBack, onAccount = { destination = Destination.Account })
                     Destination.Companion -> CompanionScreen(onBack = goBack)
                     Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
-                    Destination.Account -> AccountScreen(onBack = goBack)
+                    Destination.Account -> AccountScreen(onBack = goBack, onModeration = { destination = Destination.Moderation })
+                    Destination.Moderation -> ModerationScreen(onBack = { destination = Destination.Account })
                     Destination.Adoption -> DiscoverScreen("adoption", pets = allPets, onBack = goBack,
                         onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets },
                         onAccount = { destination = Destination.Account })
