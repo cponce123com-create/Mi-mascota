@@ -3,6 +3,8 @@ package pe.mimascota.app.ui
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -62,7 +64,7 @@ fun BackupScreen(dao: BackupDao, onBack: () -> Unit) {
             busy = false
         }
     }
-    Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         TextButton(onClick = onBack) { Text("← Volver") }
         Text("☁️ Respaldar y restaurar", style = MaterialTheme.typography.headlineSmall)
         Text("Respaldo completo con fotografías", style = MaterialTheme.typography.titleMedium)
@@ -87,7 +89,7 @@ fun BackupScreen(dao: BackupDao, onBack: () -> Unit) {
         ElevatedCard {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Recuperar mis datos", style = MaterialTheme.typography.titleMedium)
-                Text("Importa un respaldo v1 o v2. Los IDs coincidentes se actualizan; se conservan los demás datos locales.")
+                Text("Importa un respaldo v1, v2 o v3. Los IDs coincidentes se actualizan; se conservan los demás datos locales.")
                 OutlinedButton(enabled = !busy, onClick = { importPicker.launch(arrayOf("application/json", "text/plain")) },
                     modifier = Modifier.fillMaxWidth()) { Text("📂 Seleccionar archivo") }
             }
