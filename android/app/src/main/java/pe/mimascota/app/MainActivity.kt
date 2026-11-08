@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import pe.mimascota.app.ui.HealthScreen
+import pe.mimascota.app.ui.PhotoScreen
+import pe.mimascota.app.ui.CommunityScreen
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import androidx.room.migration.Migration
@@ -36,9 +38,16 @@ class MainActivity : ComponentActivity() {
         val vm = ViewModelProvider(this, PetViewModelFactory(PetRepository(database.petDao())))[PetViewModel::class.java]
         setContent {
             var selectedPet by remember { mutableStateOf<String?>(null) }
+            var section by remember { mutableStateOf("pets") }
             MaterialTheme {
-                if (selectedPet == null) PetsScreen(vm, onHealth = { selectedPet = it })
-                else HealthScreen(selectedPet!!, database.healthDao(), onBack = { selectedPet = null })
+                when (section) {
+                    "community" -> CommunityScreen(onBack = { section = "pets" })
+                    "photos" -> PhotoScreen(selectedPet!!, database.healthDao(), onBack = { section = "pets"; selectedPet = null })
+                    "health" -> HealthScreen(selectedPet!!, database.healthDao(), onBack = { section = "pets"; selectedPet = null })
+                    else -> PetsScreen(vm, onHealth = { selectedPet = it; section = "health" },
+                        onPhotos = { selectedPet = it; section = "photos" },
+                        onCommunity = { section = "community" })
+                }
             }
         }
     }
