@@ -12,6 +12,7 @@ import pe.mimascota.app.ui.ExpenseScreen
 import pe.mimascota.app.ui.CompanionScreen
 import pe.mimascota.app.ui.BackupScreen
 import pe.mimascota.app.ui.VetMapScreen
+import pe.mimascota.app.ui.AccountScreen
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import androidx.room.migration.Migration
@@ -44,6 +45,7 @@ private sealed interface Destination {
     data object Companion : Destination
     data object Backup : Destination
     data object Vets : Destination
+    data object Account : Destination
     data class Health(val petId: String) : Destination
     data class Photos(val petId: String) : Destination
     data class Expenses(val petId: String) : Destination
@@ -70,10 +72,12 @@ class MainActivity : ComponentActivity() {
                         onCommunity = { destination = Destination.Community },
                         onCompanion = { destination = Destination.Companion },
                         onBackup = { destination = Destination.Backup },
-                        onVets = { destination = Destination.Vets })
+                        onVets = { destination = Destination.Vets },
+                        onAccount = { destination = Destination.Account })
                     Destination.Community -> CommunityScreen(onBack = goBack)
                     Destination.Companion -> CompanionScreen(onBack = goBack)
                     Destination.Backup -> BackupScreen(database.petDao(), onBack = goBack)
+                    Destination.Account -> AccountScreen(onBack = goBack)
                     Destination.Vets -> VetMapScreen(onBack = goBack)
                     is Destination.Health -> HealthScreen(page.petId, database.healthDao(), onBack = goBack)
                     is Destination.Photos -> PhotoScreen(page.petId, database.healthDao(), onBack = goBack)
