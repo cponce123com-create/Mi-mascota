@@ -16,10 +16,16 @@ export async function deviceRoutes(app: FastifyInstance) {
       const user = await prisma.user.upsert({
         where: { googleSubject: uid }, create: { googleSubject: uid }, update: {}
       });
+      const alreadyRegistered = await prisma.pushDevice.findUnique({
+        where: { token: parsed.data.token }, select: { ownerId: true }
+      });
+      if (alreadyRegistered && alreadyRegistered.ownerId !== user.id) {
+        return reply.code(409).send({ error: 'Device belongs to another account' });
+      }
       await prisma.pushDevice.upsert({
         where: { token: parsed.data.token },
         create: { ownerId: user.id, token: parsed.data.token },
-        update: { ownerId: user.id }
+        update: { updatedAt: new Date() }
       });
       return reply.code(201).send({ registered: true });
     });
