@@ -29,3 +29,18 @@
 
 ## Nota de honestidad
 Las pantallas informativas de adopción y perdidos no simulan resultados ni solicitudes. Sus botones abren funciones existentes; la escritura remota queda pendiente. Los cambios están guardados en código, no se afirma compilación o equivalencia visual exacta sin capturas comparativas y pruebas en dispositivo.
+
+## Actualización de implementación
+- Edición real de perfiles de mascota (nombre, especie y nacimiento) desde la pantalla de inicio.
+- La opción «Otro» ahora se acepta también en la capa de datos.
+- Álbum con miniaturas obtenidas de URI locales (no se duplican los archivos).
+- Comunidad con presentación visual mejorada y aviso explícito sobre publicación aún no disponible.
+
+## Bloqueadores externos para terminar todo
+- Firebase: proyecto, configuración Android y credenciales de servicio para el backend.
+- API HTTPS desplegada con PostgreSQL operativo.
+- Servicios de notificaciones, almacenamiento de imágenes y moderación configurados.
+- Verificación del boceto original mediante capturas y pruebas visuales en un dispositivo.
+- Pruebas y validación del APK actual mediante GitHub Actions.
+
+Las funciones que necesitan estos servicios **no deben presentarse como operativas** hasta completar su integración y las pruebas.
