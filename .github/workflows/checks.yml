@@ -16,6 +16,8 @@ jobs:
         working-directory: backend
       - run: npm run build
         working-directory: backend
+      - run: npm test
+        working-directory: backend
   android:
     runs-on: ubuntu-latest
     steps:
