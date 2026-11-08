@@ -19,7 +19,7 @@ import pe.mimascota.app.BuildConfig
 import pe.mimascota.app.auth.GoogleSignInManager
 
 @Composable
-fun AccountScreen(onBack: () -> Unit) {
+fun AccountScreen(onBack: () -> Unit, onModeration: () -> Unit) {
     val activity = LocalContext.current as Activity
     val scope = rememberCoroutineScope()
     val configured = FirebaseApp.getApps(activity).isNotEmpty() &&
@@ -76,6 +76,11 @@ fun AccountScreen(onBack: () -> Unit) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("☁️ Sincronización", fontWeight = FontWeight.SemiBold)
                 Text("La sincronización automática todavía no está disponible.")
+                OutlinedButton(onClick = onModeration, modifier = Modifier.fillMaxWidth()) {
+                    Text("🛡️ Panel de moderación")
+                }
+                Text("El servidor restringe el acceso a moderadores autorizados.",
+                    style = MaterialTheme.typography.bodySmall)
                 HorizontalDivider()
                 Text("🔒 Privacidad y seguridad", fontWeight = FontWeight.SemiBold)
                 Text("Los datos locales permanecen en este dispositivo salvo que los exportes.")
