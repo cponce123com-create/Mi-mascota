@@ -1,0 +1,10 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+model User { id String @id @default(uuid()); googleSubject String @unique; displayName String?; pets Pet[]; posts Post[]; createdAt DateTime @default(now()) }
+model Pet { id String @id @default(uuid()); ownerId String; owner User @relation(fields: [ownerId], references: [id]); name String; species Species; birthDate DateTime?; vaccines Vaccine[]; photos Photo[]; reminders Reminder[]; alerts LostPetAlert[]; createdAt DateTime @default(now()); @@index([ownerId]) }
+enum Species { CAT DOG OTHER }
+model Vaccine { id String @id @default(uuid()); petId String; pet Pet @relation(fields: [petId], references: [id]); name String; administeredAt DateTime?; nextDueAt DateTime?; @@index([petId]) }
+model Photo { id String @id @default(uuid()); petId String; pet Pet @relation(fields: [petId], references: [id]); storageKey String; createdAt DateTime @default(now()); @@index([petId]) }
+model Reminder { id String @id @default(uuid()); petId String; pet Pet @relation(fields: [petId], references: [id]); title String; dueAt DateTime; completed Boolean @default(false); @@index([petId, dueAt]) }
+model LostPetAlert { id String @id @default(uuid()); petId String; pet Pet @relation(fields: [petId], references: [id]); status String @default("OPEN"); district String?; createdAt DateTime @default(now()); @@index([status, district]) }
+model Post { id String @id @default(uuid()); authorId String; author User @relation(fields: [authorId], references: [id]); title String; body String; createdAt DateTime @default(now()); @@index([createdAt]) }
