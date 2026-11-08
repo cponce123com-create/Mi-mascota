@@ -8,7 +8,7 @@ import pe.mimascota.app.data.BackupSnapshot
 object BackupManifest {
     const val VERSION = 2
     fun encode(snapshot: BackupSnapshot): String {
-        fun rows(items: List<JSONObject>): JSONArray = JSONArray().apply { items.forEach(::put) }
+        fun rows(items: List<JSONObject>): JSONArray = JSONArray().apply { items.forEach { put(it) } }
         return JSONObject()
             .put("version", VERSION)
             .put("exportedAt", java.time.Instant.now().toString())
