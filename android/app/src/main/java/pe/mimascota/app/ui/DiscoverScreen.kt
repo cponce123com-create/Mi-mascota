@@ -2,6 +2,7 @@ package pe.mimascota.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,6 +39,8 @@ fun DiscoverScreen(
     var lost by remember { mutableStateOf<List<LostPetListing>>(emptyList()) }
     var owned by remember { mutableStateOf<List<OwnedListing>>(emptyList()) }
     var applications by remember { mutableStateOf<List<OwnedListing>>(emptyList()) }
+    var requestList by remember { mutableStateOf<List<AdoptionRequest>>(emptyList()) }
+    var reviewingId by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var sending by remember { mutableStateOf(false) }
     var notice by remember { mutableStateOf<String?>(null) }
@@ -132,6 +135,17 @@ fun DiscoverScreen(
                                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text("🐾 ${item.title}", style = MaterialTheme.typography.titleMedium)
                                     Text("Estado: ${item.status}")
+                                    if (adoption) TextButton(enabled = !sending, onClick = {
+                                        sending = true
+                                        scope.launch {
+                                            runCatching {
+                                                val token = communityToken() ?: throw IllegalStateException("Inicia sesión.")
+                                                api.applicationsFor(item.id, token)
+                                            }.onSuccess { requestList = it; reviewingId = item.id }
+                                                .onFailure { notice = it.message }
+                                            sending = false
+                                        }
+                                    }) { Text("Ver solicitudes recibidas") }
                                     if ((adoption && item.status != "CLOSED") || (!adoption && !item.status.startsWith("RESOLVED"))) {
                                         TextButton(onClick = {
                                             sending = true
@@ -250,4 +264,55 @@ fun DiscoverScreen(
             dismissButton = { TextButton(enabled = !sending, onClick = { applyTo = null }) { Text("Cancelar") } }
         )
     }
+    reviewingId?.let {
+        AlertDialog(
+            onDismissRequest = { if (!sending) reviewingId = null },
+            title = { Text("Solicitudes recibidas") },
+            text = {
+                Column(Modifier.heightIn(max = 390.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (requestList.isEmpty()) Text("Aún no hay solicitudes para este anuncio.")
+                    requestList.forEach { request ->
+                        HorizontalDivider()
+                        Text(request.message)
+                        Text("Estado: ${request.status}")
+                        if (request.status == "PENDING") {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(enabled = !sending, onClick = {
+                                    sending = true
+                                    scope.launch {
+                                        runCatching {
+                                            val token = communityToken() ?: throw IllegalStateException("Inicia sesión.")
+                                            api.respondApplication(request.id, true, token)
+                                        }.onSuccess {
+                                            requestList = requestList.map { item ->
+                                                if (item.id == request.id) item.copy(status = "ACCEPTED") else item
+                                            }
+                                        }.onFailure { notice = it.message }
+                                        sending = false
+                                    }
+                                }) { Text("Aceptar") }
+                                OutlinedButton(enabled = !sending, onClick = {
+                                    sending = true
+                                    scope.launch {
+                                        runCatching {
+                                            val token = communityToken() ?: throw IllegalStateException("Inicia sesión.")
+                                            api.respondApplication(request.id, false, token)
+                                        }.onSuccess {
+                                            requestList = requestList.map { item ->
+                                                if (item.id == request.id) item.copy(status = "REJECTED") else item
+                                            }
+                                        }.onFailure { notice = it.message }
+                                        sending = false
+                                    }
+                                }) { Text("Rechazar") }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(enabled = !sending, onClick = { reviewingId = null }) { Text("Cerrar") } }
+        )
+    }
+
 }
