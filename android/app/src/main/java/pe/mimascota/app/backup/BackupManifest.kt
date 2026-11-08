@@ -7,13 +7,13 @@ import java.time.LocalDate
 
 /** Portable JSON metadata; references to photos are not photo contents. */
 object BackupManifest {
-    const val VERSION = 2
+    const val VERSION = 3
     fun encode(snapshot: BackupSnapshot): String {
         fun rows(items: List<JSONObject>): JSONArray = JSONArray().apply { items.forEach { put(it) } }
         return JSONObject()
             .put("version", VERSION)
             .put("exportedAt", java.time.Instant.now().toString())
-            .put("pets", rows(snapshot.pets.map { JSONObject().put("id", it.id).put("name", it.name).put("species", it.species).put("birthDate", it.birthDate).put("createdAt", it.createdAt) }))
+            .put("pets", rows(snapshot.pets.map { JSONObject().put("id", it.id).put("name", it.name).put("species", it.species).put("birthDate", it.birthDate).put("createdAt", it.createdAt).put("breed", it.breed).put("weightKg", it.weightKg).put("sterilized", it.sterilized).put("microchip", it.microchip) }))
             .put("vaccines", rows(snapshot.vaccines.map { JSONObject().put("id", it.id).put("petId", it.petId).put("name", it.name).put("appliedAt", it.appliedAt).put("dueAt", it.dueAt) }))
             .put("reminders", rows(snapshot.reminders.map { JSONObject().put("id", it.id).put("petId", it.petId).put("title", it.title).put("dueAt", it.dueAt).put("completed", it.completed) }))
             .put("expenses", rows(snapshot.expenses.map { JSONObject().put("id", it.id).put("petId", it.petId).put("title", it.title).put("amountCents", it.amountCents).put("date", it.date) }))
@@ -25,7 +25,7 @@ object BackupManifest {
         require(json.length <= 5_000_000) { "El respaldo excede 5 MB" }
         val root = JSONObject(json)
         val version = root.getInt("version")
-        require(version == 1 || version == VERSION) { "Versión de respaldo no compatible" }
+        require(version in 1..VERSION) { "Versión de respaldo no compatible" }
 
         fun records(key: String): List<JSONObject> {
             val arr = if (version == 1 && key != "pets") JSONArray() else root.getJSONArray(key)
@@ -46,7 +46,11 @@ object BackupManifest {
             val species = it.required("species")
             require(species in setOf("CAT", "DOG", "OTHER"))
             PetEntity(it.required("id", 80), it.required("name", 80), species,
-                date(it.optional("birthDate")), if (it.has("createdAt")) it.getLong("createdAt") else System.currentTimeMillis())
+                date(it.optional("birthDate")), if (it.has("createdAt")) it.getLong("createdAt") else System.currentTimeMillis(),
+                it.optional("breed"),
+                if (it.has("weightKg") && !it.isNull("weightKg")) it.getDouble("weightKg").toFloat() else null,
+                if (it.has("sterilized") && !it.isNull("sterilized")) it.getBoolean("sterilized") else null,
+                it.optional("microchip"))
         }) { it.id }
         val vaccines = unique(records("vaccines").map {
             VaccineEntity(it.required("id", 80), it.required("petId", 80),
