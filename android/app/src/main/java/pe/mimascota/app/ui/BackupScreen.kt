@@ -28,6 +28,9 @@ fun BackupScreen(dao: BackupDao, onBack: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var pending by remember { mutableStateOf<BackupSnapshot?>(null) }
     var pendingZip by remember { mutableStateOf<PreparedPhotoArchive?>(null) }
+    var secretMode by remember { mutableStateOf<String?>(null) }
+    var secretPassword by remember { mutableStateOf("") }
+    var secretConfirm by remember { mutableStateOf("") }
     val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) scope.launch {
             busy = true
@@ -64,9 +67,46 @@ fun BackupScreen(dao: BackupDao, onBack: () -> Unit) {
             busy = false
         }
     }
+    val encryptedExportPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        val password = secretPassword
+        secretPassword = ""
+        secretConfirm = ""
+        if (uri != null && password.length >= 8) scope.launch {
+            busy = true
+            message = runCatching { photoArchive.exportEncrypted(uri, password) }
+                .fold({ count -> "Copia cifrada guardada con $count fotografías." },
+                    { "Error al cifrar: ${it.message}" })
+            busy = false
+        }
+    }
+    val encryptedImportPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val password = secretPassword
+        secretPassword = ""
+        secretConfirm = ""
+        if (uri != null && password.isNotBlank()) scope.launch {
+            busy = true
+            runCatching { photoArchive.prepareEncrypted(uri, password) }
+                .onSuccess { pendingZip?.discard(); pendingZip = it; message = "Respaldo cifrado verificado." }
+                .onFailure { message = "Contraseña incorrecta o archivo dañado: ${it.message}" }
+            busy = false
+        }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         TextButton(onClick = onBack) { Text("← Volver") }
         Text("☁️ Respaldar y restaurar", style = MaterialTheme.typography.headlineSmall)
+        ElevatedCard {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("🔐 Copia protegida con contraseña", style = MaterialTheme.typography.titleMedium)
+                Text("Cifra mascotas, gastos, salud y fotografías con AES-256-GCM. Recomendado para datos personales.")
+                Button(enabled = !busy, onClick = { secretMode = "EXPORT" }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Crear respaldo cifrado")
+                }
+                OutlinedButton(enabled = !busy, onClick = { secretMode = "IMPORT" },
+                    modifier = Modifier.fillMaxWidth()) { Text("Restaurar respaldo cifrado") }
+            }
+        }
         Text("Respaldo completo con fotografías", style = MaterialTheme.typography.titleMedium)
         ElevatedCard {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -135,6 +175,35 @@ fun BackupScreen(dao: BackupDao, onBack: () -> Unit) {
             dismissButton = { TextButton(onClick = {
                 prepared.discard()
                 pendingZip = null
+            }) { Text("Cancelar") } }
+        )
+    }
+
+    secretMode?.let { mode ->
+        AlertDialog(
+            onDismissRequest = { secretMode = null; secretPassword = ""; secretConfirm = "" },
+            title = { Text(if (mode == "EXPORT") "Proteger respaldo" else "Abrir respaldo protegido") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("La contraseña no se almacena. Si la pierdes, no podrás recuperar el archivo.")
+                    OutlinedTextField(secretPassword, { secretPassword = it },
+                        label = { Text("Contraseña (mínimo 8 caracteres)") },
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
+                    if (mode == "EXPORT") {
+                        OutlinedTextField(secretConfirm, { secretConfirm = it },
+                            label = { Text("Repetir contraseña") },
+                            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
+                    }
+                }
+            },
+            confirmButton = { Button(enabled = secretPassword.length in 8..256 &&
+                (mode != "EXPORT" || secretPassword == secretConfirm), onClick = {
+                secretMode = null
+                if (mode == "EXPORT") encryptedExportPicker.launch("mi-mascota-protegido.mmpet")
+                else encryptedImportPicker.launch(arrayOf("application/octet-stream", "*/*"))
+            }) { Text("Continuar") } },
+            dismissButton = { TextButton(onClick = {
+                secretMode = null; secretPassword = ""; secretConfirm = ""
             }) { Text("Cancelar") } }
         )
     }
