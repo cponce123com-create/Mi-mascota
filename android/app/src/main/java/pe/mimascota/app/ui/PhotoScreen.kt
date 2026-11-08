@@ -47,6 +47,7 @@ fun PhotoScreen(petId: String, dao: HealthDao, onBack: () -> Unit) {
                 ListItem(headlineContent = { Text("Fotografía guardada") },
                     supportingContent = { Text(java.text.DateFormat.getDateInstance().format(java.util.Date(photo.createdAt))) },
                     trailingContent = {
+                        Row {
                         TextButton(onClick = {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(photo.uri)).apply {
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -54,6 +55,7 @@ fun PhotoScreen(petId: String, dao: HealthDao, onBack: () -> Unit) {
                             runCatching { context.startActivity(intent) }.onFailure { error = "No se puede abrir la imagen" }
                         }) { Text("Ver") }
                         TextButton(onClick = { pendingDelete = photo.id }) { Text("Quitar") }
+                        }
                     })
             }
         }
