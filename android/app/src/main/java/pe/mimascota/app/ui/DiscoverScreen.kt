@@ -28,7 +28,8 @@ fun DiscoverScreen(
     onBack: () -> Unit,
     onCommunity: () -> Unit,
     onVets: () -> Unit,
-    onAccount: () -> Unit
+    onAccount: () -> Unit,
+    onChat: (String) -> Unit
 ) {
     val adoption = kind == "adoption"
     val configured = BuildConfig.API_BASE_URL.startsWith("https://")
@@ -167,7 +168,11 @@ fun DiscoverScreen(
                         }
                         if (adoption) items(applications, key = { it.id }) { item ->
                             ListItem(headlineContent = { Text("Solicitud: ${item.title}") },
-                                supportingContent = { Text("Estado: ${item.status}") })
+                                supportingContent = { Text("Estado: ${item.status}") },
+                                trailingContent = {
+                                    if (item.status == "ACCEPTED")
+                                        TextButton(onClick = { onChat(item.id) }) { Text("💬 Chat") }
+                                })
                         }
                     }
                 }
@@ -276,6 +281,11 @@ fun DiscoverScreen(
                         HorizontalDivider()
                         Text(request.message)
                         Text("Estado: ${request.status}")
+                        if (request.status == "ACCEPTED") {
+                            OutlinedButton(onClick = { reviewingId = null; onChat(request.id) }) {
+                                Text("💬 Conversar")
+                            }
+                        }
                         if (request.status == "PENDING") {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(enabled = !sending, onClick = {
