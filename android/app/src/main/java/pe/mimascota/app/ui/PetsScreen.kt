@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun PetsScreen(viewModel: PetViewModel, onHealth: (String) -> Unit, onPhotos: (String) -> Unit, onExpenses: (String) -> Unit, onCommunity: () -> Unit, onCompanion: () -> Unit) {
+fun PetsScreen(viewModel: PetViewModel, onHealth: (String) -> Unit, onPhotos: (String) -> Unit, onExpenses: (String) -> Unit, onCommunity: () -> Unit, onCompanion: () -> Unit, onBackup: () -> Unit, onVets: () -> Unit) {
     val pets by viewModel.pets.collectAsStateWithLifecycle()
     var name by remember { mutableStateOf("") }
     var species by remember { mutableStateOf("CAT") }
@@ -20,6 +20,7 @@ fun PetsScreen(viewModel: PetViewModel, onHealth: (String) -> Unit, onPhotos: (S
         Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Text("Registra a tus compañeros", style = MaterialTheme.typography.titleMedium)
             Row { TextButton(onClick = onCommunity) { Text("Comunidad") }; TextButton(onClick = onCompanion) { Text("Compañero virtual") } }
+            Row { TextButton(onClick = onBackup) { Text("Exportar") }; TextButton(onClick = onVets) { Text("Veterinarias") } }
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Row {
