@@ -19,6 +19,8 @@ model User {
   displayName   String?
   pets          Pet[]
   posts         Post[]
+  adoptionListings AdoptionListing[] @relation("AdoptionAuthor")
+  adoptionApplications AdoptionApplication[] @relation("AdoptionApplicant")
   createdAt     DateTime @default(now())
 }
 
@@ -71,6 +73,8 @@ model LostPetAlert {
   petId     String
   pet       Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
   status    String   @default("OPEN")
+  visibility String  @default("PENDING")
+  details   String?
   district  String?
   createdAt DateTime @default(now())
   @@index([status, district])
@@ -82,6 +86,37 @@ model Post {
   author    User     @relation(fields: [authorId], references: [id])
   title     String
   body      String
+  status    String   @default("PENDING")
   createdAt DateTime @default(now())
   @@index([createdAt])
+}
+
+model AdoptionListing {
+  id           String                @id @default(uuid())
+  authorId     String
+  author       User                  @relation("AdoptionAuthor", fields: [authorId], references: [id])
+  petName      String
+  species      Species
+  description  String
+  district     String?
+  status       String                @default("PENDING")
+  createdAt    DateTime              @default(now())
+  applications AdoptionApplication[]
+
+  @@index([status, createdAt])
+  @@index([authorId])
+}
+
+model AdoptionApplication {
+  id          String          @id @default(uuid())
+  listingId   String
+  listing     AdoptionListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  applicantId String
+  applicant   User            @relation("AdoptionApplicant", fields: [applicantId], references: [id])
+  message     String
+  status      String          @default("PENDING")
+  createdAt   DateTime        @default(now())
+
+  @@unique([listingId, applicantId])
+  @@index([applicantId])
 }
