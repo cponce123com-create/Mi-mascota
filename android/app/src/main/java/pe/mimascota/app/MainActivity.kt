@@ -73,7 +73,7 @@ private sealed interface Destination {
     data object Adoption : Destination
     data object Lost : Destination
     data class Profile(val petId: String) : Destination
-    data class Health(val petId: String) : Destination
+    data class Health(val petId: String, val tab: Int = 0) : Destination
     data class Photos(val petId: String) : Destination
     data class Expenses(val petId: String) : Destination
 }
@@ -150,6 +150,8 @@ class MainActivity : ComponentActivity() {
                                 onSelectPet = { selectedPetId = it },
                                 openPetsToken = petsRequest, openAddToken = addRequest,
                                 onHealth = { destination = Destination.Health(it) },
+                                onVaccines = { destination = Destination.Health(it, 0) },
+                                onReminders = { destination = Destination.Health(it, 1) },
                                 onPhotos = { destination = Destination.Photos(it) },
                                 onExpenses = { destination = Destination.Expenses(it) },
                                 onCommunity = { destination = Destination.Community },
@@ -183,7 +185,8 @@ class MainActivity : ComponentActivity() {
                                 onHealth = { destination = Destination.Health(page.petId) },
                                 onPhotos = { destination = Destination.Photos(page.petId) },
                                 onExpenses = { destination = Destination.Expenses(page.petId) })
-                            is Destination.Health -> HealthScreen(page.petId, database.healthDao(), onBack = goBack)
+                            is Destination.Health -> HealthScreen(page.petId, database.healthDao(), onBack = goBack,
+                                petName = allPets.firstOrNull { it.id == page.petId }?.name.orEmpty(), initialTab = page.tab)
                             is Destination.Photos -> PhotoScreen(page.petId, database.healthDao(), onBack = goBack)
                             is Destination.Expenses -> ExpenseScreen(page.petId, database.expenseDao(), onBack = goBack)
                         }
