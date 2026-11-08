@@ -13,6 +13,7 @@ data class CommunityPost(val title: String, val body: String)
 data class LostPetListing(val name: String, val species: String, val district: String?)
 data class AdoptionListing(val id: String, val name: String, val species: String, val description: String, val district: String?)
 data class OwnedListing(val id: String, val title: String, val status: String)
+data class ModerationItem(val id: String, val kind: String, val title: String, val details: String)
 
 /** Tokens are obtained from Firebase just before protected requests, never stored in Room. */
 suspend fun communityToken(): String? = runCatching {
@@ -129,4 +130,26 @@ class CommunityApi(private val baseUrl: String) {
     suspend fun closeAdoption(id: String, token: String) {
         request("PATCH", "/v1/adoptions/$id/close", JSONObject(), token)
     }
+    suspend fun moderationQueue(token: String): List<ModerationItem> {
+        val root = JSONObject(request("GET", "/v1/moderation/queue", token = token))
+        val items = mutableListOf<ModerationItem>()
+        fun collect(key: String, kind: String, title: (JSONObject) -> String, text: (JSONObject) -> String) {
+            val rows = root.getJSONArray(key)
+            for (i in 0 until rows.length()) {
+                val row = rows.getJSONObject(i)
+                items += ModerationItem(row.getString("id"), kind, title(row), text(row))
+            }
+        }
+        collect("posts", "post", { it.optString("title") }, { it.optString("body") })
+        collect("lost", "lost", { it.getJSONObject("pet").optString("name") }, { it.optString("details") })
+        collect("adoptions", "adoption", { it.optString("petName") }, { it.optString("description") })
+        return items
+    }
+
+    suspend fun moderate(item: ModerationItem, approve: Boolean, token: String) {
+        require(item.kind in setOf("post", "lost", "adoption"))
+        request("PATCH", "/v1/moderation/${item.kind}/${item.id}",
+            JSONObject().put("approve", approve), token)
+    }
+
 }
