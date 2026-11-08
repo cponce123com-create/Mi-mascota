@@ -12,6 +12,8 @@ jobs:
           node-version: '22'
       - run: npm install
         working-directory: backend
+      - run: npx prisma validate
+        working-directory: backend
       - run: npm run build
         working-directory: backend
   android:
