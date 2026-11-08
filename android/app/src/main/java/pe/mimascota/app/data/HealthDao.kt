@@ -18,4 +18,6 @@ interface HealthDao {
     @Query("SELECT * FROM photos WHERE petId = :petId ORDER BY createdAt DESC")
     fun photos(petId: String): Flow<List<PhotoEntity>>
     @Insert suspend fun addPhoto(photo: PhotoEntity)
+    @Query("DELETE FROM photos WHERE id = :id")
+    suspend fun deletePhoto(id: String)
 }
