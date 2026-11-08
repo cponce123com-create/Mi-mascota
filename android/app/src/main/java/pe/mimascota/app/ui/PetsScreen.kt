@@ -61,6 +61,7 @@ fun PetsScreen(
     var selectedId by remember { mutableStateOf<String?>(null) }
     val activePet = pets.firstOrNull { it.id == selectedId } ?: pets.firstOrNull()
     var showAdd by remember { mutableStateOf(false) }
+    var showPets by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var species by remember { mutableStateOf("CAT") }
     var birthDate by remember { mutableStateOf("") }
@@ -77,7 +78,7 @@ fun PetsScreen(
         bottomBar = {
             NavigationBar(containerColor = Color.White) {
                 NavigationBarItem(selected = true, onClick = {}, icon = { Text("🏠") }, label = { Text("Inicio") })
-                NavigationBarItem(selected = false, onClick = { showAdd = true }, icon = { Text("🐾") }, label = { Text("Mascotas") })
+                NavigationBarItem(selected = false, onClick = { showPets = true }, icon = { Text("🐾") }, label = { Text("Mascotas") })
                 NavigationBarItem(selected = false, onClick = { showAdd = true }, icon = { Text("➕") }, label = { Text("Agregar") })
                 NavigationBarItem(selected = false, onClick = onCommunity, icon = { Text("👥") }, label = { Text("Comunidad") })
                 NavigationBarItem(selected = false, onClick = onAccount, icon = { Text("👤") }, label = { Text("Cuenta") })
@@ -177,6 +178,27 @@ fun PetsScreen(
         }
     }
 
+    if (showPets) AlertDialog(
+        onDismissRequest = { showPets = false },
+        title = { Text("🐾 Mis mascotas") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (pets.isEmpty()) Text("Aún no has registrado mascotas.")
+                pets.forEach { pet ->
+                    OutlinedButton(
+                        onClick = { selectedId = pet.id; showPets = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("${if (pet.species == "DOG") "🐶" else "🐱"} ${pet.name}")
+                    }
+                }
+                Button(onClick = { showPets = false; showAdd = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("➕ Registrar nueva mascota")
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { showPets = false }) { Text("Cerrar") } }
+    )
     if (showAdd) AlertDialog(
         onDismissRequest = { if (!saving) showAdd = false },
         title = { Text("🐾 Nueva mascota") },
