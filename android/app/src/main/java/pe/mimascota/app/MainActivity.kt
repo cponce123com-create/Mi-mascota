@@ -10,6 +10,8 @@ import pe.mimascota.app.ui.PhotoScreen
 import pe.mimascota.app.ui.CommunityScreen
 import pe.mimascota.app.ui.ExpenseScreen
 import pe.mimascota.app.ui.CompanionScreen
+import pe.mimascota.app.ui.BackupScreen
+import pe.mimascota.app.ui.VetMapScreen
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import androidx.room.migration.Migration
@@ -49,6 +51,8 @@ class MainActivity : ComponentActivity() {
             var section by remember { mutableStateOf("pets") }
             MaterialTheme {
                 when (section) {
+                    "backup" -> BackupScreen(database.petDao(), onBack = { section = "pets" })
+                    "vets" -> VetMapScreen(onBack = { section = "pets" })
                     "companion" -> CompanionScreen(onBack = { section = "pets" })
                     "community" -> CommunityScreen(onBack = { section = "pets" })
                     "photos" -> PhotoScreen(selectedPet!!, database.healthDao(), onBack = { section = "pets"; selectedPet = null })
@@ -57,7 +61,8 @@ class MainActivity : ComponentActivity() {
                     else -> PetsScreen(vm, onHealth = { selectedPet = it; section = "health" },
                         onPhotos = { selectedPet = it; section = "photos" },
                         onExpenses = { selectedPet = it; section = "expenses" },
-                        onCommunity = { section = "community" }, onCompanion = { section = "companion" })
+                        onCommunity = { section = "community" }, onCompanion = { section = "companion" },
+                        onBackup = { section = "backup" }, onVets = { section = "vets" })
                 }
             }
         }
