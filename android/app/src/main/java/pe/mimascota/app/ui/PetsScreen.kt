@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun PetsScreen(viewModel: PetViewModel, onHealth: (String) -> Unit, onPhotos: (String) -> Unit, onCommunity: () -> Unit) {
+fun PetsScreen(viewModel: PetViewModel, onHealth: (String) -> Unit, onPhotos: (String) -> Unit, onExpenses: (String) -> Unit, onCommunity: () -> Unit) {
     val pets by viewModel.pets.collectAsStateWithLifecycle()
     var name by remember { mutableStateOf("") }
     var species by remember { mutableStateOf("CAT") }
@@ -42,7 +42,7 @@ fun PetsScreen(viewModel: PetViewModel, onHealth: (String) -> Unit, onPhotos: (S
                     ListItem(
                         headlineContent = { Text(pet.name) },
                         supportingContent = { Text((if (pet.species == "CAT") "Gato" else "Perro") + (pet.birthDate?.let { " · Nació: $it" } ?: "")) },
-                        trailingContent = { Row { TextButton(onClick = { onHealth(pet.id) }) { Text("Salud") }; TextButton(onClick = { onPhotos(pet.id) }) { Text("Fotos") }; TextButton(onClick = { viewModel.remove(pet.id) }) { Text("Eliminar") } } }
+                        trailingContent = { Row { TextButton(onClick = { onHealth(pet.id) }) { Text("Salud") }; TextButton(onClick = { onPhotos(pet.id) }) { Text("Fotos") }; TextButton(onClick = { onExpenses(pet.id) }) { Text("Gastos") }; TextButton(onClick = { viewModel.remove(pet.id) }) { Text("Eliminar") } } }
                     )
                     HorizontalDivider()
                 }
