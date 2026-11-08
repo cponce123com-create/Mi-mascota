@@ -15,6 +15,8 @@ interface HealthDao {
     @Insert suspend fun addReminder(reminder: ReminderEntity)
     @Query("UPDATE reminders SET completed = :completed WHERE id = :id")
     suspend fun completeReminder(id: String, completed: Boolean)
+    @Query("SELECT * FROM photos ORDER BY createdAt DESC")
+    fun allPhotos(): Flow<List<PhotoEntity>>
     @Query("SELECT * FROM photos WHERE petId = :petId ORDER BY createdAt DESC")
     fun photos(petId: String): Flow<List<PhotoEntity>>
     @Insert suspend fun addPhoto(photo: PhotoEntity)
