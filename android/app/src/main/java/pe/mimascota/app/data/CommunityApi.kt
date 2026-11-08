@@ -16,6 +16,7 @@ data class AdoptionListing(val id: String, val name: String, val species: String
 data class OwnedListing(val id: String, val title: String, val status: String)
 data class ModerationItem(val id: String, val kind: String, val title: String, val details: String)
 data class AdoptionRequest(val id: String, val message: String, val status: String)
+data class PrivateMessage(val id: String, val body: String, val mine: Boolean)
 
 /** Tokens are obtained from Firebase just before protected requests, never stored in Room. */
 suspend fun communityToken(): String? = runCatching {
@@ -137,6 +138,17 @@ class CommunityApi(private val baseUrl: String) {
 
     suspend fun resolveLost(id: String, token: String) {
         request("PATCH", "/v1/lost-pets/$id/resolve", JSONObject(), token)
+    }
+
+    suspend fun chatMessages(applicationId: String, token: String): List<PrivateMessage> {
+        val rows = JSONArray(request("GET", "/v1/adoption-applications/$applicationId/messages", token = token))
+        return (0 until rows.length()).map { i -> rows.getJSONObject(i).let {
+            PrivateMessage(it.getString("id"), it.getString("body"), it.getBoolean("mine")) } }
+    }
+
+    suspend fun sendChatMessage(applicationId: String, body: String, token: String) {
+        request("POST", "/v1/adoption-applications/$applicationId/messages",
+            JSONObject().put("body", body), token)
     }
 
     suspend fun applicationsFor(id: String, token: String): List<AdoptionRequest> {
