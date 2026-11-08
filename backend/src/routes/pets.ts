@@ -1,9 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { prisma } from '../db.js';
 import { authenticatedUser } from '../auth.js';
 
-const prisma = new PrismaClient();
 const createPet = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(80),
