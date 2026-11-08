@@ -9,7 +9,8 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class CommunityPost(val title: String, val body: String)
+data class CommunityPost(val id: String, val title: String, val body: String)
+data class CommunityComment(val id: String, val body: String)
 data class LostPetListing(val name: String, val species: String, val district: String?)
 data class AdoptionListing(val id: String, val name: String, val species: String, val description: String, val district: String?)
 data class OwnedListing(val id: String, val title: String, val status: String)
@@ -55,7 +56,7 @@ class CommunityApi(private val baseUrl: String) {
     suspend fun posts(): List<CommunityPost> {
         val rows = JSONArray(request("GET", "/v1/community/posts"))
         return (0 until rows.length()).map { i -> rows.getJSONObject(i).let {
-            CommunityPost(it.optString("title"), it.optString("body")) } }
+            CommunityPost(it.getString("id"), it.optString("title"), it.optString("body")) } }
     }
 
     suspend fun lostPets(): List<LostPetListing> {
@@ -75,6 +76,16 @@ class CommunityApi(private val baseUrl: String) {
             AdoptionListing(row.getString("id"), row.getString("petName"), row.getString("species"),
                 row.getString("description"), row.optString("district").takeIf { it.isNotBlank() && it != "null" })
         }
+    }
+
+    suspend fun comments(postId: String): List<CommunityComment> {
+        val rows = JSONArray(request("GET", "/v1/community/posts/$postId/comments"))
+        return (0 until rows.length()).map { i -> rows.getJSONObject(i).let {
+            CommunityComment(it.getString("id"), it.getString("body")) } }
+    }
+
+    suspend fun submitComment(postId: String, body: String, token: String) {
+        request("POST", "/v1/community/posts/$postId/comments", JSONObject().put("body", body), token)
     }
 
     suspend fun post(title: String, body: String, token: String) {
@@ -155,11 +166,12 @@ class CommunityApi(private val baseUrl: String) {
         collect("posts", "post", { it.optString("title") }, { it.optString("body") })
         collect("lost", "lost", { it.getJSONObject("pet").optString("name") }, { it.optString("details") })
         collect("adoptions", "adoption", { it.optString("petName") }, { it.optString("description") })
+        collect("comments", "comment", { it.getJSONObject("post").optString("title") }, { it.optString("body") })
         return items
     }
 
     suspend fun moderate(item: ModerationItem, approve: Boolean, token: String) {
-        require(item.kind in setOf("post", "lost", "adoption"))
+        require(item.kind in setOf("post", "lost", "adoption", "comment"))
         request("PATCH", "/v1/moderation/${item.kind}/${item.id}",
             JSONObject().put("approve", approve), token)
     }
