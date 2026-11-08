@@ -83,7 +83,7 @@ class BackupPhotoArchive(private val context: Context, private val dao: BackupDa
             archive.write(BackupManifest.encode(data.copy(photos = included)).toByteArray(Charsets.UTF_8))
             archive.closeEntry()
         }
-        included.size
+        return included.size
     }
 
     suspend fun prepare(uri: Uri): PreparedPhotoArchive = withContext(Dispatchers.IO) {
