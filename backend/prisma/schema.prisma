@@ -20,6 +20,7 @@ model User {
   pets          Pet[]
   posts         Post[]
   comments      Comment[]
+  devices       PushDevice[]
   adoptionListings AdoptionListing[] @relation("AdoptionAuthor")
   adoptionApplications AdoptionApplication[] @relation("AdoptionApplicant")
   createdAt     DateTime @default(now())
@@ -135,4 +136,15 @@ model Comment {
 
   @@index([postId, status, createdAt])
   @@index([authorId])
+}
+
+model PushDevice {
+  id        String   @id @default(uuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
 }
