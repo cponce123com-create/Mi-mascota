@@ -24,11 +24,15 @@ fun PhotoScreen(petId: String, dao: HealthDao, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val photos by dao.photos(petId).collectAsStateWithLifecycle(initialValue = emptyList())
     var error by remember { mutableStateOf<String?>(null) }
+    var pendingDelete by remember { mutableStateOf<String?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
             try {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                scope.launch { dao.addPhoto(PhotoEntity(UUID.randomUUID().toString(), petId, uri.toString(), System.currentTimeMillis())) }
+                scope.launch {
+                    runCatching { dao.addPhoto(PhotoEntity(UUID.randomUUID().toString(), petId, uri.toString(), System.currentTimeMillis())) }
+                        .onFailure { error = "No se pudo guardar la referencia de la foto" }
+                }
             } catch (e: SecurityException) { error = "No se pudo conservar el permiso de la imagen" }
         }
     }
@@ -49,8 +53,21 @@ fun PhotoScreen(petId: String, dao: HealthDao, onBack: () -> Unit) {
                             }
                             runCatching { context.startActivity(intent) }.onFailure { error = "No se puede abrir la imagen" }
                         }) { Text("Ver") }
+                        TextButton(onClick = { pendingDelete = photo.id }) { Text("Quitar") }
                     })
             }
         }
     }
+    if (pendingDelete != null) AlertDialog(
+        onDismissRequest = { pendingDelete = null },
+        title = { Text("Quitar foto del álbum") },
+        text = { Text("Se eliminará solo la referencia del álbum; el archivo original no se borrará.") },
+        confirmButton = { TextButton(onClick = {
+            pendingDelete?.let { id ->
+                scope.launch { runCatching { dao.deletePhoto(id) }.onFailure { error = "No se pudo quitar la foto" } }
+            }
+            pendingDelete = null
+        }) { Text("Quitar") } },
+        dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancelar") } }
+    )
 }
