@@ -1,9 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { prisma } from '../db.js';
 import { authenticatedUser } from '../auth.js';
 
-const prisma = new PrismaClient();
 const postInput = z.object({ title: z.string().trim().min(3).max(120), body: z.string().trim().min(5).max(3000) });
 const commentInput = z.object({ body: z.string().trim().min(2).max(1000) });
 const commentId = z.object({ id: z.string().uuid() });
