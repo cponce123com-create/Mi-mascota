@@ -153,6 +153,10 @@ class CommunityApi(private val baseUrl: String) {
     suspend fun closeAdoption(id: String, token: String) {
         request("PATCH", "/v1/adoptions/$id/close", JSONObject(), token)
     }
+    suspend fun deleteRemoteAccount(token: String) {
+        request("DELETE", "/v1/account", JSONObject().put("confirm", "DELETE_MY_ACCOUNT"), token)
+    }
+
     suspend fun moderationQueue(token: String): List<ModerationItem> {
         val root = JSONObject(request("GET", "/v1/moderation/queue", token = token))
         val items = mutableListOf<ModerationItem>()
