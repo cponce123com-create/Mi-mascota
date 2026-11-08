@@ -9,6 +9,8 @@ import pe.mimascota.app.BuildConfig
 import pe.mimascota.app.data.BackupDao
 import pe.mimascota.app.data.BackupSnapshot
 import pe.mimascota.app.data.PhotoEntity
+import java.io.InputStream
+import java.io.OutputStream
 import java.io.File
 import java.io.ByteArrayOutputStream
 import java.util.UUID
@@ -37,12 +39,23 @@ class BackupPhotoArchive(private val context: Context, private val dao: BackupDa
     }
 
     suspend fun export(uri: Uri): Int = withContext(Dispatchers.IO) {
+        val output = context.contentResolver.openOutputStream(uri, "wt")
+            ?: error("No se puede abrir el destino ZIP")
+        writeArchive(output)
+    }
+
+    suspend fun exportEncrypted(uri: Uri, password: String): Int = withContext(Dispatchers.IO) {
+        require(password.length >= 8) { "Usa una contraseña de al menos 8 caracteres" }
+        val output = context.contentResolver.openOutputStream(uri, "wt")
+            ?: error("No se puede abrir el destino cifrado")
+        writeArchive(BackupCrypto.encrypt(output, password))
+    }
+
+    private suspend fun writeArchive(output: OutputStream): Int {
         val data = dao.snapshot()
         require(data.photos.size <= 300) { "El álbum supera 300 fotos" }
         var total = 0L
         val included = mutableListOf<PhotoEntity>()
-        val output = context.contentResolver.openOutputStream(uri, "wt")
-            ?: error("No se puede abrir el destino ZIP")
         ZipOutputStream(output.buffered()).use { archive ->
             data.photos.forEach { photo ->
                 if (!VALID_ID.matches(photo.id)) return@forEach
@@ -74,13 +87,23 @@ class BackupPhotoArchive(private val context: Context, private val dao: BackupDa
     }
 
     suspend fun prepare(uri: Uri): PreparedPhotoArchive = withContext(Dispatchers.IO) {
+        val input = context.contentResolver.openInputStream(uri) ?: error("No se puede abrir el ZIP")
+        readArchive(input)
+    }
+
+    suspend fun prepareEncrypted(uri: Uri, password: String): PreparedPhotoArchive = withContext(Dispatchers.IO) {
+        val input = context.contentResolver.openInputStream(uri)
+            ?: error("No se puede abrir el respaldo cifrado")
+        readArchive(BackupCrypto.decrypt(input, password))
+    }
+
+    private fun readArchive(input: InputStream): PreparedPhotoArchive {
         val folder = File(context.cacheDir, "mi-mascota-restore-${UUID.randomUUID()}")
         require(folder.mkdirs()) { "No se pudo preparar el respaldo" }
         val images = mutableMapOf<String, File>()
         var manifest: String? = null
         var total = 0L
         try {
-            val input = context.contentResolver.openInputStream(uri) ?: error("No se puede abrir el ZIP")
             ZipInputStream(input.buffered()).use { zip ->
                 while (true) {
                     val entry = zip.nextEntry ?: break
