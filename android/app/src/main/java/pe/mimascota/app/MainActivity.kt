@@ -15,6 +15,7 @@ import pe.mimascota.app.ui.CompanionScreen
 import pe.mimascota.app.ui.BackupScreen
 import pe.mimascota.app.ui.VetMapScreen
 import pe.mimascota.app.ui.AccountScreen
+import pe.mimascota.app.ui.DiscoverScreen
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import androidx.room.migration.Migration
@@ -48,6 +49,8 @@ private sealed interface Destination {
     data object Backup : Destination
     data object Vets : Destination
     data object Account : Destination
+    data object Adoption : Destination
+    data object Lost : Destination
     data class Health(val petId: String) : Destination
     data class Photos(val petId: String) : Destination
     data class Expenses(val petId: String) : Destination
@@ -85,11 +88,15 @@ class MainActivity : ComponentActivity() {
                         onCompanion = { destination = Destination.Companion },
                         onBackup = { destination = Destination.Backup },
                         onVets = { destination = Destination.Vets },
-                        onAccount = { destination = Destination.Account })
+                        onAccount = { destination = Destination.Account },
+                        onAdoption = { destination = Destination.Adoption },
+                        onLost = { destination = Destination.Lost })
                     Destination.Community -> CommunityScreen(onBack = goBack)
                     Destination.Companion -> CompanionScreen(onBack = goBack)
                     Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
                     Destination.Account -> AccountScreen(onBack = goBack)
+                    Destination.Adoption -> DiscoverScreen("adoption", onBack = goBack, onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets })
+                    Destination.Lost -> DiscoverScreen("lost", onBack = goBack, onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets })
                     Destination.Vets -> VetMapScreen(onBack = goBack)
                     is Destination.Health -> HealthScreen(page.petId, database.healthDao(), onBack = goBack)
                     is Destination.Photos -> PhotoScreen(page.petId, database.healthDao(), onBack = goBack)
