@@ -37,6 +37,11 @@ import pe.mimascota.app.ui.PetsScreen
 import pe.mimascota.app.ui.PetProfileScreen
 import pe.mimascota.app.ui.ModerationScreen
 import pe.mimascota.app.notifications.ReminderNotifications
+import pe.mimascota.app.data.CompanionRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
+import java.io.File
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private val MIGRATION_2_3 = object : Migration(2, 3) {
@@ -173,7 +178,19 @@ class MainActivity : ComponentActivity() {
                             Destination.Companion -> CompanionScreen(onBack = goBack)
                             Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
                             Destination.Account -> AccountScreen(onBack = goBack,
-                                onModeration = { destination = Destination.Moderation })
+                                onModeration = { destination = Destination.Moderation },
+                                onBackup = { destination = Destination.Backup },
+                                onEraseLocal = {
+                                    withContext(Dispatchers.IO) {
+                                        database.healthDao().allReminders().first().forEach {
+                                            ReminderNotifications.cancel(applicationContext, it.id)
+                                        }
+                                        database.clearAllTables()
+                                        File(filesDir, "photos").deleteRecursively()
+                                        CompanionRepository.reset(applicationContext)
+                                        getSharedPreferences("reminder_history", MODE_PRIVATE).edit().clear().apply()
+                                    }
+                                })
                             Destination.Moderation -> ModerationScreen(
                                 onBack = { destination = Destination.Account })
                             Destination.Adoption -> DiscoverScreen("adoption", pets = allPets, onBack = goBack,
