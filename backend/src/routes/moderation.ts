@@ -1,9 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { prisma as db } from '../db.js';
 import { authenticatedUser } from '../auth.js';
 
-const db = new PrismaClient();
 const paramsSchema = z.object({ kind: z.enum(['post', 'lost', 'adoption', 'comment']), id: z.string().uuid() });
 const decisionSchema = z.object({ approve: z.boolean() });
 
