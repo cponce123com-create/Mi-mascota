@@ -56,6 +56,8 @@ fun PetsScreen(
     openPetsToken: Int,
     openAddToken: Int,
     onHealth: (String) -> Unit,
+    onVaccines: (String) -> Unit,
+    onReminders: (String) -> Unit,
     onPhotos: (String) -> Unit,
     onExpenses: (String) -> Unit,
     onCommunity: () -> Unit,
@@ -151,9 +153,9 @@ fun PetsScreen(
                         TextButton(onClick = { onProfile(activePet.id) }) { Text("🐾 Ver ficha completa de ${activePet.name} ›") }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        DashboardTile("💉", "Vacunas", Color(0xFF2465C5), Modifier.weight(1f)) { withPet(onHealth) }
+                        DashboardTile("💉", "Vacunas", Color(0xFF2465C5), Modifier.weight(1f)) { withPet(onVaccines) }
                         DashboardTile("💗", "Salud", Color(0xFFD72672), Modifier.weight(1f)) { withPet(onHealth) }
-                        DashboardTile("📅", "Recordatorios", Color(0xFF7952C7), Modifier.weight(1f)) { withPet(onHealth) }
+                        DashboardTile("📅", "Recordatorios", Color(0xFF7952C7), Modifier.weight(1f)) { withPet(onReminders) }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         DashboardTile("🪙", "Gastos", Color(0xFFB97800), Modifier.weight(1f)) { withPet(onExpenses) }
