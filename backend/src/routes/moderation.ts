@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { authenticatedUser } from '../auth.js';
 
 const db = new PrismaClient();
-const paramsSchema = z.object({ kind: z.enum(['post', 'lost', 'adoption']), id: z.string().uuid() });
+const paramsSchema = z.object({ kind: z.enum(['post', 'lost', 'adoption', 'comment']), id: z.string().uuid() });
 const decisionSchema = z.object({ approve: z.boolean() });
 
 /** Explicit service-side admin allowlist, never a client-supplied role. */
@@ -18,14 +18,16 @@ export async function moderationRoutes(app: FastifyInstance) {
   app.get('/v1/moderation/queue', async (req, reply) => {
     try { if (!await isModerator(req)) return reply.code(403).send({ error: 'Forbidden' }); }
     catch { return reply.code(401).send({ error: 'Unauthorized' }); }
-    const [posts, lost, adoptions] = await Promise.all([
+    const [posts, lost, adoptions, comments] = await Promise.all([
       db.post.findMany({ where: { status: 'PENDING' }, take: 50, select: { id: true, title: true, body: true } }),
       db.lostPetAlert.findMany({ where: { visibility: 'PENDING' }, take: 50,
         select: { id: true, district: true, details: true, pet: { select: { name: true } } } }),
       db.adoptionListing.findMany({ where: { status: 'PENDING' }, take: 50,
-        select: { id: true, petName: true, description: true, district: true } })
+        select: { id: true, petName: true, description: true, district: true } }),
+      db.comment.findMany({ where: { status: 'PENDING' }, take: 50,
+        select: { id: true, body: true, post: { select: { title: true } } } })
     ]);
-    return { posts, lost, adoptions };
+    return { posts, lost, adoptions, comments };
   });
 
   app.patch('/v1/moderation/:kind/:id', async (req, reply) => {
@@ -40,7 +42,9 @@ export async function moderationRoutes(app: FastifyInstance) {
       ? await db.post.updateMany({ where: { id, status: 'PENDING' }, data: { status: approved ? 'APPROVED' : 'REJECTED' } })
       : kind === 'lost'
       ? await db.lostPetAlert.updateMany({ where: { id, visibility: 'PENDING' }, data: { visibility: approved ? 'APPROVED' : 'REJECTED' } })
-      : await db.adoptionListing.updateMany({ where: { id, status: 'PENDING' }, data: { status: approved ? 'APPROVED' : 'REJECTED' } });
+      : kind === 'adoption'
+      ? await db.adoptionListing.updateMany({ where: { id, status: 'PENDING' }, data: { status: approved ? 'APPROVED' : 'REJECTED' } })
+      : await db.comment.updateMany({ where: { id, status: 'PENDING' }, data: { status: approved ? 'APPROVED' : 'REJECTED' } });
     return result.count ? { moderated: true } : reply.code(404).send({ error: 'Not pending or not found' });
   });
 }
