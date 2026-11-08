@@ -100,7 +100,7 @@ fun PetsScreen(
         title = { Text("Eliminar mascota") },
         text = { Text("Se eliminarán también sus vacunas, recordatorios, fotos registradas y gastos de este dispositivo.") },
         confirmButton = { TextButton(onClick = {
-            pendingDelete?.let { viewModel.remove(it) }
+            pendingDelete?.let { viewModel.remove(it) { failure -> error = failure } }
             pendingDelete = null
         }) { Text("Eliminar") } },
         dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancelar") } }
