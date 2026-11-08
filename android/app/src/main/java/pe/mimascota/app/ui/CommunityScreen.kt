@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import pe.mimascota.app.BuildConfig
 import pe.mimascota.app.data.CommunityApi
 import pe.mimascota.app.data.CommunityPost
+import pe.mimascota.app.data.CommunityComment
 import pe.mimascota.app.data.LostPetListing
 import pe.mimascota.app.data.communityToken
 
@@ -30,9 +31,23 @@ fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
     var message by remember { mutableStateOf<String?>(null) }
     var tab by remember { mutableIntStateOf(0) }
     var composing by remember { mutableStateOf(false) }
+    var viewingPost by remember { mutableStateOf<CommunityPost?>(null) }
+    var comments by remember { mutableStateOf<List<CommunityComment>>(emptyList()) }
+    var commentText by remember { mutableStateOf("") }
+    var commentMessage by remember { mutableStateOf<String?>(null) }
+    var commentsBusy by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
     var body by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
+    fun loadComments(id: String) {
+        commentsBusy = true
+        scope.launch {
+            runCatching { api.comments(id) }
+                .onSuccess { comments = it; commentMessage = null }
+                .onFailure { commentMessage = it.message }
+            commentsBusy = false
+        }
+    }
     fun refresh() {
         if (!configured || loading) return
         loading = true
@@ -79,6 +94,11 @@ fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
                                     Text("🐾 ${post.title}", style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold)
                                     Text(post.body)
+                                    TextButton(onClick = {
+                                        viewingPost = post
+                                        commentText = ""
+                                        loadComments(post.id)
+                                    }) { Text("💬 Ver comentarios") }
                                 }
                             }
                         }
@@ -128,4 +148,44 @@ fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
             TextButton(enabled = !sending, onClick = { composing = false }) { Text("Cancelar") }
         }
     )
+    viewingPost?.let { post ->
+        AlertDialog(
+            onDismissRequest = { if (!commentsBusy) viewingPost = null },
+            title = { Text("💬 ${post.title}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (commentsBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
+                    commentMessage?.let { Text(it) }
+                    LazyColumn(Modifier.heightIn(max = 220.dp)) {
+                        if (comments.isEmpty()) item { Text("No hay comentarios aprobados.") }
+                        items(comments, key = { it.id }) { comment ->
+                            Text(comment.body, modifier = Modifier.padding(vertical = 6.dp))
+                            HorizontalDivider()
+                        }
+                    }
+                    OutlinedTextField(commentText, { commentText = it },
+                        label = { Text("Tu comentario") }, minLines = 2, maxLines = 4)
+                    Text("Los comentarios nuevos se muestran después de la moderación.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = { Button(enabled = !commentsBusy && commentText.trim().length in 2..1000,
+                onClick = {
+                    commentsBusy = true
+                    scope.launch {
+                        runCatching {
+                            val token = communityToken() ?: throw IllegalStateException("Inicia sesión con Google.")
+                            api.submitComment(post.id, commentText.trim(), token)
+                        }.onSuccess {
+                            commentText = ""
+                            commentMessage = "Comentario enviado a revisión."
+                        }.onFailure { commentMessage = it.message }
+                        commentsBusy = false
+                    }
+                }) { Text("Comentar") } },
+            dismissButton = { TextButton(enabled = !commentsBusy,
+                onClick = { viewingPost = null }) { Text("Cerrar") } }
+        )
+    }
+
 }
