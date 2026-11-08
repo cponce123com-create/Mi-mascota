@@ -38,6 +38,17 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("CREATE INDEX IF NOT EXISTS index_photos_petId ON photos(petId)")
     }
 }
+private sealed interface Destination {
+    data object Pets : Destination
+    data object Community : Destination
+    data object Companion : Destination
+    data object Backup : Destination
+    data object Vets : Destination
+    data class Health(val petId: String) : Destination
+    data class Photos(val petId: String) : Destination
+    data class Expenses(val petId: String) : Destination
+}
+
 class MainActivity : ComponentActivity() {
     private val database by lazy {
         Room.databaseBuilder(applicationContext, AppDatabase::class.java, "mi-mascota.db")
@@ -47,22 +58,26 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val vm = ViewModelProvider(this, PetViewModelFactory(PetRepository(database.petDao())))[PetViewModel::class.java]
         setContent {
-            var selectedPet by remember { mutableStateOf<String?>(null) }
-            var section by remember { mutableStateOf("pets") }
+            var destination by remember { mutableStateOf<Destination>(Destination.Pets) }
+            val goBack = { destination = Destination.Pets }
+            androidx.activity.compose.BackHandler(destination != Destination.Pets) { goBack() }
             MaterialTheme {
-                when (section) {
-                    "backup" -> BackupScreen(database.petDao(), onBack = { section = "pets" })
-                    "vets" -> VetMapScreen(onBack = { section = "pets" })
-                    "companion" -> CompanionScreen(onBack = { section = "pets" })
-                    "community" -> CommunityScreen(onBack = { section = "pets" })
-                    "photos" -> PhotoScreen(selectedPet!!, database.healthDao(), onBack = { section = "pets"; selectedPet = null })
-                    "expenses" -> ExpenseScreen(selectedPet!!, database.expenseDao(), onBack = { section = "pets"; selectedPet = null })
-                    "health" -> HealthScreen(selectedPet!!, database.healthDao(), onBack = { section = "pets"; selectedPet = null })
-                    else -> PetsScreen(vm, onHealth = { selectedPet = it; section = "health" },
-                        onPhotos = { selectedPet = it; section = "photos" },
-                        onExpenses = { selectedPet = it; section = "expenses" },
-                        onCommunity = { section = "community" }, onCompanion = { section = "companion" },
-                        onBackup = { section = "backup" }, onVets = { section = "vets" })
+                when (val page = destination) {
+                    Destination.Pets -> PetsScreen(vm,
+                        onHealth = { destination = Destination.Health(it) },
+                        onPhotos = { destination = Destination.Photos(it) },
+                        onExpenses = { destination = Destination.Expenses(it) },
+                        onCommunity = { destination = Destination.Community },
+                        onCompanion = { destination = Destination.Companion },
+                        onBackup = { destination = Destination.Backup },
+                        onVets = { destination = Destination.Vets })
+                    Destination.Community -> CommunityScreen(onBack = goBack)
+                    Destination.Companion -> CompanionScreen(onBack = goBack)
+                    Destination.Backup -> BackupScreen(database.petDao(), onBack = goBack)
+                    Destination.Vets -> VetMapScreen(onBack = goBack)
+                    is Destination.Health -> HealthScreen(page.petId, database.healthDao(), onBack = goBack)
+                    is Destination.Photos -> PhotoScreen(page.petId, database.healthDao(), onBack = goBack)
+                    is Destination.Expenses -> ExpenseScreen(page.petId, database.expenseDao(), onBack = goBack)
                 }
             }
         }
