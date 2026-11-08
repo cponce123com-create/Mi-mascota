@@ -20,7 +20,7 @@ object BackupManifest {
             .put("photos", rows(snapshot.photos.map { JSONObject().put("id", it.id).put("petId", it.petId).put("uri", it.uri).put("createdAt", it.createdAt) }))
             .toString()
     }
-    /** Decode backups v1 and v2. Invalid records fail before any database writes. */
+    /** Decode backups v1, v2 and v3. Invalid records fail before any database writes. */
     fun decode(json: String): BackupSnapshot {
         require(json.length <= 5_000_000) { "El respaldo excede 5 MB" }
         val root = JSONObject(json)
