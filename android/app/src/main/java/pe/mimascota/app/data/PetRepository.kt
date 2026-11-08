@@ -10,10 +10,19 @@ class PetRepository(private val dao: PetDao) {
     suspend fun add(name: String, species: String, birthDate: String?) {
         val cleanName = name.trim()
         require(cleanName.isNotBlank() && cleanName.length <= 80) { "Nombre inválido" }
-        require(species in setOf("CAT", "DOG")) { "Especie inválida" }
+        require(species in setOf("CAT", "DOG", "OTHER")) { "Especie inválida" }
         val date = birthDate?.takeIf { it.isNotBlank() }?.let { LocalDate.parse(it) }
         require(date == null || !date.isAfter(LocalDate.now())) { "Fecha futura" }
         dao.insert(PetEntity(UUID.randomUUID().toString(), cleanName, species, date?.toString(), System.currentTimeMillis()))
+    }
+
+    suspend fun update(id: String, name: String, species: String, birthDate: String?) {
+        val cleanName = name.trim()
+        require(cleanName.isNotBlank() && cleanName.length <= 80) { "Nombre inválido" }
+        require(species in setOf("CAT", "DOG", "OTHER")) { "Especie inválida" }
+        val date = birthDate?.takeIf { it.isNotBlank() }?.let { LocalDate.parse(it) }
+        require(date == null || !date.isAfter(LocalDate.now())) { "Fecha futura" }
+        dao.updateDetails(id, cleanName, species, date?.toString())
     }
 
     suspend fun remove(id: String) = dao.delete(id)
