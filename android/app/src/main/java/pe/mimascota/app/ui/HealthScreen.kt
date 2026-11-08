@@ -1,6 +1,11 @@
 package pe.mimascota.app.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import android.os.Build
+import pe.mimascota.app.notifications.ReminderNotifications
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -20,6 +25,14 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit) {
     val vaccines by dao.vaccines(petId).collectAsStateWithLifecycle(initialValue = emptyList())
     val reminders by dao.reminders(petId).collectAsStateWithLifecycle(initialValue = emptyList())
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var notificationsEnabled by remember { mutableStateOf(ReminderNotifications.hasPermission(context)) }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        notificationsEnabled = it
+    }
+    LaunchedEffect(reminders, notificationsEnabled) {
+        if (notificationsEnabled) reminders.forEach { ReminderNotifications.schedule(context, it) }
+    }
     var vaccine by remember { mutableStateOf("") }
     var reminder by remember { mutableStateOf("") }
     var due by remember { mutableStateOf("") }
@@ -27,7 +40,14 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         TextButton(onClick = onBack) { Text("Volver a mis mascotas") }
-        Text("Salud y recordatorios", style = MaterialTheme.typography.headlineSmall)
+        Text("💉 Salud y recordatorios", style = MaterialTheme.typography.headlineSmall)
+        if (!notificationsEnabled && Build.VERSION.SDK_INT >= 33) {
+            OutlinedButton(onClick = {
+                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }) { Text("🔔 Activar avisos de recordatorios") }
+            Text("Los recordatorios se guardan sin permiso; los avisos necesitan autorización.",
+                style = MaterialTheme.typography.bodySmall)
+        }
         OutlinedTextField(vaccine, { vaccine = it }, label = { Text("Vacuna aplicada o pendiente") })
         Button(enabled = vaccine.isNotBlank() && !busy, onClick = {
             busy = true
@@ -63,7 +83,10 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit) {
             items(reminders, key = { it.id }) { item ->
                 Row {
                     Checkbox(checked = item.completed, onCheckedChange = { checked ->
-                        scope.launch { dao.completeReminder(item.id, checked) }
+                        scope.launch {
+                            runCatching { dao.completeReminder(item.id, checked) }
+                                .onFailure { error = "No se pudo actualizar el recordatorio" }
+                        }
                     })
                     Text("${item.title} — ${item.dueAt}", modifier = Modifier.padding(8.dp))
                 }
