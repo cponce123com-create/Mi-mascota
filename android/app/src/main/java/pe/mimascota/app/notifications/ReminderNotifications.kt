@@ -38,6 +38,8 @@ object ReminderNotifications {
         val date = runCatching { LocalDate.parse(reminder.dueAt) }.getOrNull() ?: return
         if (date.isBefore(LocalDate.now())) { cancel(context, reminder.id); return }
         val due = date.atTime(9, 0)
+        // Keep a previously scheduled notification instead of resetting its delay
+        // each time Compose re-observes the reminder list.
         val delay = Duration.between(LocalDateTime.now(), due).toMillis().coerceAtLeast(0L)
         val payload = Data.Builder().putString("id", reminder.id).putString("title", reminder.title).build()
         val request = OneTimeWorkRequestBuilder<ReminderWorker>()
@@ -45,7 +47,7 @@ object ReminderNotifications {
             .setInputData(payload)
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
-            workName(reminder.id), ExistingWorkPolicy.REPLACE, request)
+            workName(reminder.id), ExistingWorkPolicy.KEEP, request)
     }
 
     fun cancel(context: Context, id: String) {
