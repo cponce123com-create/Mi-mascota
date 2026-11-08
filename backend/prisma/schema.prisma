@@ -21,6 +21,7 @@ model User {
   posts         Post[]
   comments      Comment[]
   devices       PushDevice[]
+  sentMessages  AdoptionMessage[]
   adoptionListings AdoptionListing[] @relation("AdoptionAuthor")
   adoptionApplications AdoptionApplication[] @relation("AdoptionApplicant")
   createdAt     DateTime @default(now())
@@ -116,6 +117,7 @@ model AdoptionApplication {
   listing     AdoptionListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   applicantId String
   applicant   User            @relation("AdoptionApplicant", fields: [applicantId], references: [id])
+  messages    AdoptionMessage[]
   message     String
   status      String          @default("PENDING")
   createdAt   DateTime        @default(now())
@@ -147,4 +149,17 @@ model PushDevice {
   updatedAt DateTime @updatedAt
 
   @@index([ownerId])
+}
+
+model AdoptionMessage {
+  id            String              @id @default(uuid())
+  applicationId String
+  application   AdoptionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body          String
+  createdAt     DateTime            @default(now())
+
+  @@index([applicationId, createdAt])
+  @@index([authorId])
 }
