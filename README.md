@@ -30,22 +30,24 @@
 
 ## 🧩 Funcionalidades
 
-| Módulo | Qué ofrece actualmente | Estado |
+| Módulo | Implementado en el código | Límite actual |
 |:--|:--|:--|
-| 🐾 Mascotas | Registro, listado y eliminación con confirmación | 🟡 Implementado en código; build sin verificar |
-| 💉 Salud | Vacunas y recordatorios con fecha y estado | 🟡 Local |
-| 💰 Gastos | Registro y totalización en PEN | 🟡 Local |
-| 📷 Fotografías | Selección de imágenes, referencias persistentes y opción de quitarlas del álbum | 🟡 No almacena bytes ni miniaturas |
-| 💾 Exportación | JSON v2 de mascotas, salud, gastos y referencias fotográficas | 🟡 Sin restauración ni cifrado |
-| 🌐 Comunidad | Lectura de publicaciones y mascotas perdidas por API HTTPS | 🟡 Requiere backend desplegado |
-| 🔐 Cuenta | Pantalla de acceso Google con Firebase | 🟡 Requiere configuración externa |
-| 🗺️ Veterinarias | Abre una aplicación de mapas externa | 🟡 Integración básica |
-| 🎮 Compañero virtual | Interacciones locales sencillas | 🟡 Prototipo |
-| 🏡 Adopciones y campañas | Experiencia completa de adopción y moderación | ⚪ Pendiente |
-| 🔔 Notificaciones | Alertas programadas y push | ⚪ Pendiente |
-| 🔄 Sincronización | Respaldo/restauración completa entre dispositivos | ⚪ Pendiente |
+| 🐾 Mascotas | Alta, selección, ficha detallada, edición y eliminación confirmada | Falta QA real y fotografías por defecto |
+| 💉 Vacunas | Próxima dosis, historial y formulario de fechas | No hay agenda veterinaria externa |
+| 📅 Recordatorios | Estado pendiente/completado y avisos locales con WorkManager | Los avisos no son exactos; push FCM pendiente |
+| 💰 Gastos | Movimientos y totales en soles | Sin reportes analíticos exportables |
+| 📷 Álbum | Miniaturas, visor y eliminación de referencias | No existe almacenamiento remoto automático |
+| 💾 Respaldo | Exportación y restauración JSON v1–v3; ZIP con archivos fotográficos | ZIP/JSON aún sin cifrado; fotos inaccesibles se omiten |
+| 🏡 Adopciones | Publicaciones, solicitudes, estados y cierre en Android/API | Requiere Firebase, servidor y moderación configurados |
+| 📢 Perdidos | Avisos de mascotas, estado, cierre y revisión | Fotografías remotas, geolocalización de alertas y push pendientes |
+| 🌐 Comunidad | Lectura y creación de publicaciones con moderación previa | Sin comentarios ni chat |
+| 🛡️ Moderación | Cola de revisión y aprobación/rechazo, autorizada por UID | Requiere configurar `MODERATOR_UIDS` |
+| 🔐 Cuenta | Google/Firebase Sign-In opcional desde la app | Requiere proyecto Firebase real y OAuth |
+| 🗺️ Veterinarias | Mapa integrado OpenStreetMap, permiso aproximado opcional y apertura de mapas externos | Sin directorio veterinario verificado |
+| 🎮 Juegos | Compañero virtual persistente y minijuego de huellas | Animaciones y minijuegos avanzados pendientes |
+| 📲 APK | Compilación debug y artifact descargable en GitHub Actions | No es APK firmado de producción |
 
-**Leyenda:** 🟡 existe implementación parcial o local; ⚪ pendiente. **Ninguna fila significa que se haya validado un APK de producción.**
+**Estado de calidad:** código integrado en el repositorio, sujeto a compilación y pruebas en GitHub Actions y dispositivos. No se considera publicado en Google Play.
 
 ## 🏗️ Arquitectura
 
@@ -62,7 +64,7 @@ flowchart TB
     FAST --> AUTH["🔑 Firebase Admin"]
     FAST --> ORM["🔷 Prisma ORM"]
     ORM --> PG[("🐘 PostgreSQL")]
-    UI --> MAP["🗺️ App de mapas externa"]
+    UI --> MAP["🗺️ OpenStreetMap + mapas externos"]
     style ROOM fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
     style PG fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
 ```
@@ -154,6 +156,7 @@ npx prisma validate
 npm run prisma:generate
 npm run prisma:migrate
 npm run build
+npm test
 npm start
 ```
 
@@ -187,7 +190,9 @@ npm run build
 gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-GitHub Actions tiene un flujo de validación configurado en [`.github/workflows/checks.yml`](.github/workflows/checks.yml). **Los resultados de ejecución no están certificados en este README.**
+GitHub Actions valida Prisma, aplica migraciones en un PostgreSQL temporal, ejecuta pruebas del backend y compila/prueba Android. Si el job **android** termina correctamente, publica `Mi-Mascota-Android-Debug` como artifact ZIP con `app-debug.apk`.
+
+[📥 Descargar APK desde Actions](https://github.com/cponce123com-create/Mi-mascota/actions) (abre el último flujo verde y despliega **Artifacts**). No se garantiza aquí que la ejecución más reciente haya terminado correctamente.
 
 ## 🗺️ Hoja de ruta
 
@@ -207,8 +212,8 @@ Consulta también [ROADMAP](docs/ROADMAP.md), [QA](docs/QA_CHECKLIST.md) y [audi
 
 - **Offline-first:** los registros locales permanecen en Room; no se sincronizan automáticamente por iniciar sesión.
 - **Fotos:** actualmente se guardan referencias URI, no copias de las imágenes.
-- **Exportación:** el archivo JSON contiene datos personales potencialmente sensibles, **no está cifrado** y no incluye los bytes de las fotografías.
-- **Comunidad:** los endpoints públicos son de lectura; las operaciones de escritura del backend exigen autenticación.
+- **Exportación:** los archivos JSON y ZIP contienen datos potencialmente sensibles y **no están cifrados**; el ZIP puede incluir imágenes, y debe guardarse en un lugar privado.
+- **Comunidad:** las lecturas públicas filtran contenido aprobado. Las escrituras requieren Firebase y se publican inicialmente como pendientes de moderación.
 - **Producción:** faltan controles adicionales de moderación, protección contra abuso distribuido, privacidad y pruebas de seguridad.
 
 Más información en [docs/SECURITY.md](docs/SECURITY.md).
