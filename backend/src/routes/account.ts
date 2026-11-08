@@ -1,9 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { prisma as db } from '../db.js';
 import { authenticatedUser } from '../auth.js';
 
-const db = new PrismaClient();
 const confirmation = z.object({ confirm: z.literal('DELETE_MY_ACCOUNT') });
 
 export async function accountRoutes(app: FastifyInstance) {
