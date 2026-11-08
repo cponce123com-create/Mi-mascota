@@ -1,9 +1,11 @@
 import Fastify from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { petRoutes } from './routes/pets.js';
 import { healthRoutes } from './routes/health.js';
 import { communityRoutes } from './routes/community.js';
 const app = Fastify({ logger: true, bodyLimit: 1_000_000 });
 app.get('/health', async () => ({ status: 'ok', service: 'mi-mascota' }));
+app.register(rateLimit, { max: 60, timeWindow: '1 minute' });
 app.register(petRoutes);
 app.register(communityRoutes);
 app.register(healthRoutes);
