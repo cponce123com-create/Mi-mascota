@@ -25,6 +25,8 @@ import pe.mimascota.app.data.PetRepository
 import pe.mimascota.app.ui.PetViewModel
 import pe.mimascota.app.ui.PetViewModelFactory
 import pe.mimascota.app.ui.PetsScreen
+import pe.mimascota.app.ui.PetProfileScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private val MIGRATION_2_3 = object : Migration(2, 3) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -59,6 +61,7 @@ private sealed interface Destination {
     data object Account : Destination
     data object Adoption : Destination
     data object Lost : Destination
+    data class Profile(val petId: String) : Destination
     data class Health(val petId: String) : Destination
     data class Photos(val petId: String) : Destination
     data class Expenses(val petId: String) : Destination
@@ -74,6 +77,8 @@ class MainActivity : ComponentActivity() {
         val vm = ViewModelProvider(this, PetViewModelFactory(PetRepository(database.petDao())))[PetViewModel::class.java]
         setContent {
             var destination by remember { mutableStateOf<Destination>(Destination.Pets) }
+            val allPets by vm.pets.collectAsStateWithLifecycle()
+            val allPhotos by database.healthDao().allPhotos().collectAsStateWithLifecycle(emptyList())
             val goBack = { destination = Destination.Pets }
             androidx.activity.compose.BackHandler(destination != Destination.Pets) { goBack() }
             MaterialTheme(
@@ -88,7 +93,7 @@ class MainActivity : ComponentActivity() {
                 )
             ) {
                 when (val page = destination) {
-                    Destination.Pets -> PetsScreen(vm,
+                    Destination.Pets -> PetsScreen(vm, photos = allPhotos,
                         onHealth = { destination = Destination.Health(it) },
                         onPhotos = { destination = Destination.Photos(it) },
                         onExpenses = { destination = Destination.Expenses(it) },
@@ -98,7 +103,8 @@ class MainActivity : ComponentActivity() {
                         onVets = { destination = Destination.Vets },
                         onAccount = { destination = Destination.Account },
                         onAdoption = { destination = Destination.Adoption },
-                        onLost = { destination = Destination.Lost })
+                        onLost = { destination = Destination.Lost },
+                        onProfile = { destination = Destination.Profile(it) })
                     Destination.Community -> CommunityScreen(onBack = goBack)
                     Destination.Companion -> CompanionScreen(onBack = goBack)
                     Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
@@ -106,6 +112,11 @@ class MainActivity : ComponentActivity() {
                     Destination.Adoption -> DiscoverScreen("adoption", onBack = goBack, onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets })
                     Destination.Lost -> DiscoverScreen("lost", onBack = goBack, onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets })
                     Destination.Vets -> VetMapScreen(onBack = goBack)
+                    is Destination.Profile -> PetProfileScreen(allPets.firstOrNull { it.id == page.petId },
+                        database.healthDao(), database.expenseDao(), vm, onBack = goBack,
+                        onHealth = { destination = Destination.Health(page.petId) },
+                        onPhotos = { destination = Destination.Photos(page.petId) },
+                        onExpenses = { destination = Destination.Expenses(page.petId) })
                     is Destination.Health -> HealthScreen(page.petId, database.healthDao(), onBack = goBack)
                     is Destination.Photos -> PhotoScreen(page.petId, database.healthDao(), onBack = goBack)
                     is Destination.Expenses -> ExpenseScreen(page.petId, database.expenseDao(), onBack = goBack)
