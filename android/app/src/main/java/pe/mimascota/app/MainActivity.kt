@@ -42,6 +42,14 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("CREATE INDEX IF NOT EXISTS index_photos_petId ON photos(petId)")
     }
 }
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE pets ADD COLUMN breed TEXT")
+        db.execSQL("ALTER TABLE pets ADD COLUMN weightKg REAL")
+        db.execSQL("ALTER TABLE pets ADD COLUMN sterilized INTEGER")
+        db.execSQL("ALTER TABLE pets ADD COLUMN microchip TEXT")
+    }
+}
 private sealed interface Destination {
     data object Pets : Destination
     data object Community : Destination
@@ -59,7 +67,7 @@ private sealed interface Destination {
 class MainActivity : ComponentActivity() {
     private val database by lazy {
         Room.databaseBuilder(applicationContext, AppDatabase::class.java, "mi-mascota.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
