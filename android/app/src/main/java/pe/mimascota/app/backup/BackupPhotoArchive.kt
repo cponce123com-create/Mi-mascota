@@ -125,7 +125,7 @@ class BackupPhotoArchive(private val context: Context, private val dao: BackupDa
         val images = mutableMapOf<String, File>()
         var manifest: String? = null
         var total = 0L
-        try {
+        return try {
             ZipInputStream(input.buffered()).use { zip ->
                 while (true) {
                     val entry = zip.nextEntry ?: break
