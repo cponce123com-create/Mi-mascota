@@ -62,6 +62,7 @@ fun PetsScreen(
     val activePet = pets.firstOrNull { it.id == selectedId } ?: pets.firstOrNull()
     var showAdd by remember { mutableStateOf(false) }
     var showPets by remember { mutableStateOf(false) }
+    var editingId by remember { mutableStateOf<String?>(null) }
     var name by remember { mutableStateOf("") }
     var species by remember { mutableStateOf("CAT") }
     var birthDate by remember { mutableStateOf("") }
@@ -168,8 +169,14 @@ fun PetsScreen(
                     }
                     OutlinedButton(onClick = onVets, modifier = Modifier.fillMaxWidth()) { Text("📍 Buscar veterinarias cercanas") }
                     if (activePet != null) {
-                        OutlinedButton(onClick = { pendingDelete = activePet.id }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Administrar / eliminar ${activePet.name}")
+                        OutlinedButton(onClick = {
+                            editingId = activePet.id
+                            name = activePet.name
+                            species = activePet.species
+                            birthDate = activePet.birthDate.orEmpty()
+                            error = null
+                        }, modifier = Modifier.fillMaxWidth()) {
+                            Text("✏️ Editar perfil de ${activePet.name}")
                         }
                     }
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -198,6 +205,38 @@ fun PetsScreen(
             }
         },
         confirmButton = { TextButton(onClick = { showPets = false }) { Text("Cerrar") } }
+    )
+    if (editingId != null) AlertDialog(
+        onDismissRequest = { if (!saving) editingId = null },
+        title = { Text("✏️ Editar mascota") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(name, { name = it }, label = { Text("Nombre") })
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = species == "CAT", onClick = { species = "CAT" }, label = { Text("Gato") })
+                    FilterChip(selected = species == "DOG", onClick = { species = "DOG" }, label = { Text("Perro") })
+                    FilterChip(selected = species == "OTHER", onClick = { species = "OTHER" }, label = { Text("Otro") })
+                }
+                OutlinedTextField(birthDate, { birthDate = it }, label = { Text("Nacimiento AAAA-MM-DD") })
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = { Button(enabled = !saving && name.isNotBlank(), onClick = {
+            val id = editingId ?: return@Button
+            saving = true
+            viewModel.update(id, name, species, birthDate) { failure ->
+                saving = false
+                error = failure
+                if (failure == null) editingId = null
+            }
+        }) { Text("Guardar cambios") } },
+        dismissButton = {
+            TextButton(enabled = !saving, onClick = {
+                editingId = null
+                pendingDelete = activePet?.id
+            }) { Text("Eliminar") }
+            TextButton(enabled = !saving, onClick = { editingId = null }) { Text("Cancelar") }
+        }
     )
     if (showAdd) AlertDialog(
         onDismissRequest = { if (!saving) showAdd = false },
