@@ -53,7 +53,9 @@ fun PetsScreen(
     onCompanion: () -> Unit,
     onBackup: () -> Unit,
     onVets: () -> Unit,
-    onAccount: () -> Unit
+    onAccount: () -> Unit,
+    onAdoption: () -> Unit,
+    onLost: () -> Unit
 ) {
     val pets by viewModel.pets.collectAsStateWithLifecycle()
     var selectedId by remember { mutableStateOf<String?>(null) }
@@ -146,8 +148,8 @@ fun PetsScreen(
                         DashboardTile("👥", "Comunidad", Color(0xFF6940AE), Modifier.weight(1f), onCommunity)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        DashboardTile("🏡", "Adopción", Color(0xFF168E61), Modifier.weight(1f), onCommunity)
-                        DashboardTile("📢", "Perdidos", Color(0xFFC94936), Modifier.weight(1f), onCommunity)
+                        DashboardTile("🏡", "Adopción", Color(0xFF168E61), Modifier.weight(1f), onAdoption)
+                        DashboardTile("📢", "Perdidos", Color(0xFFC94936), Modifier.weight(1f), onLost)
                         DashboardTile("☁️", "Respaldos", Color(0xFF1177C2), Modifier.weight(1f), onBackup)
                     }
                     ElevatedCard(shape = RoundedCornerShape(20.dp),
