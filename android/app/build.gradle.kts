@@ -15,6 +15,8 @@ android {
         versionName = "0.4.0"
         val apiUrl = (project.findProperty("API_BASE_URL") as String?) ?: ""
         buildConfigField("String", "API_BASE_URL", "\"" + apiUrl.replace("\"", "") + "\"")
+        val googleClientId = (project.findProperty("GOOGLE_WEB_CLIENT_ID") as String?) ?: ""
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"" + googleClientId.replace("\"", "") + "\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
