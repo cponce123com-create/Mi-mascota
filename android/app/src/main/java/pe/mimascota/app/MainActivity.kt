@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.*
+import pe.mimascota.app.ui.HealthScreen
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import androidx.room.migration.Migration
@@ -32,6 +34,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val vm = ViewModelProvider(this, PetViewModelFactory(PetRepository(database.petDao())))[PetViewModel::class.java]
-        setContent { MaterialTheme { PetsScreen(vm) } }
+        setContent {
+            var selectedPet by remember { mutableStateOf<String?>(null) }
+            MaterialTheme {
+                if (selectedPet == null) PetsScreen(vm, onHealth = { selectedPet = it })
+                else HealthScreen(selectedPet!!, database.healthDao(), onBack = { selectedPet = null })
+            }
+        }
     }
 }
