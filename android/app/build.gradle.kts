@@ -12,7 +12,9 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.3.0"
+        versionName = "0.4.0"
+        val apiUrl = (project.findProperty("API_BASE_URL") as String?) ?: ""
+        buildConfigField("String", "API_BASE_URL", "\"" + apiUrl.replace("\"", "") + "\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
