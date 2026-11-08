@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
                         onAccount = { destination = Destination.Account })
                     Destination.Community -> CommunityScreen(onBack = goBack)
                     Destination.Companion -> CompanionScreen(onBack = goBack)
-                    Destination.Backup -> BackupScreen(database.petDao(), onBack = goBack)
+                    Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
                     Destination.Account -> AccountScreen(onBack = goBack)
                     Destination.Vets -> VetMapScreen(onBack = goBack)
                     is Destination.Health -> HealthScreen(page.petId, database.healthDao(), onBack = goBack)
