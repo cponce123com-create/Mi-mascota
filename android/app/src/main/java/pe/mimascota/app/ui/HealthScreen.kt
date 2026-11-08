@@ -24,26 +24,33 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit) {
     var reminder by remember { mutableStateOf("") }
     var due by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         TextButton(onClick = onBack) { Text("Volver a mis mascotas") }
         Text("Salud y recordatorios", style = MaterialTheme.typography.headlineSmall)
         OutlinedTextField(vaccine, { vaccine = it }, label = { Text("Vacuna aplicada o pendiente") })
-        Button(enabled = vaccine.isNotBlank(), onClick = {
+        Button(enabled = vaccine.isNotBlank() && !busy, onClick = {
+            busy = true
             scope.launch {
-                dao.addVaccine(VaccineEntity(UUID.randomUUID().toString(), petId, vaccine.trim(), null, null))
-                vaccine = ""
+                runCatching { dao.addVaccine(VaccineEntity(UUID.randomUUID().toString(), petId, vaccine.trim(), null, null)) }
+                    .onSuccess { vaccine = ""; error = null }
+                    .onFailure { error = "No se pudo guardar la vacuna" }
+                busy = false
             }
         }) { Text("Registrar vacuna") }
         OutlinedTextField(reminder, { reminder = it }, label = { Text("Recordatorio") })
         OutlinedTextField(due, { due = it }, label = { Text("Fecha AAAA-MM-DD") })
-        Button(enabled = reminder.isNotBlank() && due.isNotBlank(), onClick = {
+        Button(enabled = reminder.isNotBlank() && due.isNotBlank() && !busy, onClick = {
             val date = runCatching { LocalDate.parse(due) }.getOrNull()
             if (date == null) error = "Fecha inválida"
             else {
                 error = null
+                busy = true
                 scope.launch {
-                    dao.addReminder(ReminderEntity(UUID.randomUUID().toString(), petId, reminder.trim(), date.toString()))
-                    reminder = ""; due = ""
+                    runCatching { dao.addReminder(ReminderEntity(UUID.randomUUID().toString(), petId, reminder.trim(), date.toString())) }
+                        .onSuccess { reminder = ""; due = "" }
+                        .onFailure { error = "No se pudo guardar el recordatorio" }
+                    busy = false
                 }
             }
         }) { Text("Guardar recordatorio") }
