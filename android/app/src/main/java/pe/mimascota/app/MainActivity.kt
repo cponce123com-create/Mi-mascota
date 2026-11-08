@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import pe.mimascota.app.ui.HealthScreen
 import pe.mimascota.app.ui.PhotoScreen
 import pe.mimascota.app.ui.CommunityScreen
+import pe.mimascota.app.ui.ExpenseScreen
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import androidx.room.migration.Migration
@@ -18,11 +19,17 @@ import pe.mimascota.app.ui.PetViewModel
 import pe.mimascota.app.ui.PetViewModelFactory
 import pe.mimascota.app.ui.PetsScreen
 
+private val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS expenses (id TEXT NOT NULL PRIMARY KEY, petId TEXT NOT NULL, title TEXT NOT NULL, amountCents INTEGER NOT NULL, date TEXT NOT NULL, FOREIGN KEY(petId) REFERENCES pets(id) ON DELETE CASCADE)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_expenses_petId ON expenses(petId)")
+    }
+}
 private val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("CREATE TABLE IF NOT EXISTS vaccines (id TEXT NOT NULL PRIMARY KEY, petId TEXT NOT NULL, name TEXT NOT NULL, appliedAt TEXT, dueAt TEXT, FOREIGN KEY(petId) REFERENCES pets(id) ON DELETE CASCADE)")
         db.execSQL("CREATE INDEX IF NOT EXISTS index_vaccines_petId ON vaccines(petId)")
-        db.execSQL("CREATE TABLE IF NOT EXISTS reminders (id TEXT NOT NULL PRIMARY KEY, petId TEXT NOT NULL, title TEXT NOT NULL, dueAt TEXT NOT NULL, completed INTEGER NOT NULL DEFAULT 0, FOREIGN KEY(petId) REFERENCES pets(id) ON DELETE CASCADE)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS reminders (id TEXT NOT NULL PRIMARY KEY, petId TEXT NOT NULL, title TEXT NOT NULL, dueAt TEXT NOT NULL, completed INTEGER NOT NULL, FOREIGN KEY(petId) REFERENCES pets(id) ON DELETE CASCADE)")
         db.execSQL("CREATE INDEX IF NOT EXISTS index_reminders_petId ON reminders(petId)")
         db.execSQL("CREATE TABLE IF NOT EXISTS photos (id TEXT NOT NULL PRIMARY KEY, petId TEXT NOT NULL, uri TEXT NOT NULL, createdAt INTEGER NOT NULL, FOREIGN KEY(petId) REFERENCES pets(id) ON DELETE CASCADE)")
         db.execSQL("CREATE INDEX IF NOT EXISTS index_photos_petId ON photos(petId)")
@@ -31,7 +38,7 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
 class MainActivity : ComponentActivity() {
     private val database by lazy {
         Room.databaseBuilder(applicationContext, AppDatabase::class.java, "mi-mascota.db")
-            .addMigrations(MIGRATION_1_2).build()
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,9 +50,11 @@ class MainActivity : ComponentActivity() {
                 when (section) {
                     "community" -> CommunityScreen(onBack = { section = "pets" })
                     "photos" -> PhotoScreen(selectedPet!!, database.healthDao(), onBack = { section = "pets"; selectedPet = null })
+                    "expenses" -> ExpenseScreen(selectedPet!!, database.expenseDao(), onBack = { section = "pets"; selectedPet = null })
                     "health" -> HealthScreen(selectedPet!!, database.healthDao(), onBack = { section = "pets"; selectedPet = null })
                     else -> PetsScreen(vm, onHealth = { selectedPet = it; section = "health" },
                         onPhotos = { selectedPet = it; section = "photos" },
+                        onExpenses = { selectedPet = it; section = "expenses" },
                         onCommunity = { section = "community" })
                 }
             }
