@@ -153,6 +153,14 @@ class CommunityApi(private val baseUrl: String) {
     suspend fun closeAdoption(id: String, token: String) {
         request("PATCH", "/v1/adoptions/$id/close", JSONObject(), token)
     }
+    suspend fun registerPushToken(deviceToken: String, bearer: String) {
+        request("POST", "/v1/devices", JSONObject().put("token", deviceToken), bearer)
+    }
+
+    suspend fun unregisterPushToken(deviceToken: String, bearer: String) {
+        request("DELETE", "/v1/devices", JSONObject().put("token", deviceToken), bearer)
+    }
+
     suspend fun deleteRemoteAccount(token: String) {
         request("DELETE", "/v1/account", JSONObject().put("confirm", "DELETE_MY_ACCOUNT"), token)
     }
