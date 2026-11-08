@@ -16,7 +16,12 @@ class PetViewModel(private val repository: PetRepository) : ViewModel() {
             onResult(error)
         }
     }
-    fun remove(id: String) { viewModelScope.launch { repository.remove(id) } }
+    fun remove(id: String, onResult: (String?) -> Unit = {}) {
+        viewModelScope.launch {
+            val error = runCatching { repository.remove(id) }.exceptionOrNull()?.message
+            onResult(error)
+        }
+    }
 }
 
 class PetViewModelFactory(private val repository: PetRepository) : ViewModelProvider.Factory {
