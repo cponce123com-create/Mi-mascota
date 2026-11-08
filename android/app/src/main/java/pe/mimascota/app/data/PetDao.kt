@@ -17,6 +17,9 @@ interface PetDao {
     @Query("UPDATE pets SET name = :name, species = :species, birthDate = :birthDate WHERE id = :id")
     suspend fun updateDetails(id: String, name: String, species: String, birthDate: String?)
 
+    @Query("UPDATE pets SET breed = :breed, weightKg = :weightKg, sterilized = :sterilized, microchip = :microchip WHERE id = :id")
+    suspend fun updateProfile(id: String, breed: String?, weightKg: Float?, sterilized: Boolean?, microchip: String?)
+
     @Query("DELETE FROM pets WHERE id = :id")
     suspend fun delete(id: String)
 }
