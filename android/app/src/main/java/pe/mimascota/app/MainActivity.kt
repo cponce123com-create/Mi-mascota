@@ -105,12 +105,16 @@ class MainActivity : ComponentActivity() {
                         onAdoption = { destination = Destination.Adoption },
                         onLost = { destination = Destination.Lost },
                         onProfile = { destination = Destination.Profile(it) })
-                    Destination.Community -> CommunityScreen(onBack = goBack)
+                    Destination.Community -> CommunityScreen(onBack = goBack, onAccount = { destination = Destination.Account })
                     Destination.Companion -> CompanionScreen(onBack = goBack)
                     Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
                     Destination.Account -> AccountScreen(onBack = goBack)
-                    Destination.Adoption -> DiscoverScreen("adoption", onBack = goBack, onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets })
-                    Destination.Lost -> DiscoverScreen("lost", onBack = goBack, onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets })
+                    Destination.Adoption -> DiscoverScreen("adoption", pets = allPets, onBack = goBack,
+                        onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets },
+                        onAccount = { destination = Destination.Account })
+                    Destination.Lost -> DiscoverScreen("lost", pets = allPets, onBack = goBack,
+                        onCommunity = { destination = Destination.Community }, onVets = { destination = Destination.Vets },
+                        onAccount = { destination = Destination.Account })
                     Destination.Vets -> VetMapScreen(onBack = goBack)
                     is Destination.Profile -> PetProfileScreen(allPets.firstOrNull { it.id == page.petId },
                         database.healthDao(), database.expenseDao(), vm, onBack = goBack,
