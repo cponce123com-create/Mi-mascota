@@ -3,7 +3,6 @@ package pe.mimascota.app.ui
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.Uri
 import android.webkit.WebView
@@ -19,7 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 
 @Composable
 fun VetMapScreen(onBack: () -> Unit) {
@@ -63,10 +61,7 @@ fun VetMapScreen(onBack: () -> Unit) {
             style = MaterialTheme.typography.bodySmall)
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = {
-                if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                    PackageManager.PERMISSION_GRANTED) {
-                    requestLocation.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-                } else requestLocation.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                requestLocation.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
             }, modifier = Modifier.weight(1f)) { Text("📍 Ubicación aprox.") }
             Button(onClick = {
                 val uri = position?.let { (lat, lon) ->
