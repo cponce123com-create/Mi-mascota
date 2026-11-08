@@ -18,7 +18,8 @@ fun PetsScreen(
     onCommunity: () -> Unit,
     onCompanion: () -> Unit,
     onBackup: () -> Unit,
-    onVets: () -> Unit
+    onVets: () -> Unit,
+    onAccount: () -> Unit
 ) {
     val pets by viewModel.pets.collectAsStateWithLifecycle()
     var name by remember { mutableStateOf("") }
@@ -46,6 +47,7 @@ fun PetsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = onBackup, modifier = Modifier.weight(1f)) { Text("Exportar") }
                     OutlinedButton(onClick = onVets, modifier = Modifier.weight(1f)) { Text("Veterinarias") }
+                OutlinedButton(onClick = onAccount, modifier = Modifier.fillMaxWidth()) { Text("Mi cuenta") }
                 }
             }
             item {
