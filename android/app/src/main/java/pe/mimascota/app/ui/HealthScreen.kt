@@ -33,6 +33,7 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
     val context = LocalContext.current
     var tab by remember(petId, initialTab) { mutableIntStateOf(initialTab) }
     var showAdd by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var vaccine by remember { mutableStateOf("") }
@@ -47,7 +48,7 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
     LaunchedEffect(reminders, notificationsEnabled) {
         if (notificationsEnabled) reminders.forEach { ReminderNotifications.schedule(context, it) }
     }
-    val nextVaccine = vaccines.filter { !it.dueAt.isNullOrBlank() && it.dueAt >= LocalDate.now().toString() }
+    val nextVaccine = vaccines.filter { item -> item.dueAt?.let { it >= LocalDate.now().toString() } == true }
         .minByOrNull { it.dueAt.orEmpty() }
 
     Box(Modifier.fillMaxSize().background(Color(0xFFF0F8FA))) {
@@ -96,7 +97,8 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
                                 ListItem(headlineContent = { Text("💉 ${item.name}") },
                                     supportingContent = {
                                         Text("Aplicada: ${item.appliedAt ?: "Sin indicar"} · Próxima: ${item.dueAt ?: "Sin indicar"}")
-                                    })
+                                    },
+                                    trailingContent = { TextButton(onClick = { pendingDelete = item.id to false }) { Text("Quitar") } })
                             }
                         }
                     } else {
@@ -112,12 +114,15 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
                                     supportingContent = { Text("📅 ${item.dueAt}") },
                                     leadingContent = { Text("🔔") },
                                     trailingContent = {
+                                        Row {
                                         Switch(checked = !item.completed, onCheckedChange = { active ->
                                             scope.launch {
                                                 runCatching { dao.completeReminder(item.id, !active) }
                                                     .onFailure { error = "No se pudo cambiar el recordatorio" }
                                             }
                                         })
+                                        TextButton(onClick = { pendingDelete = item.id to true }) { Text("×") }
+                                        }
                                     }
                                 )
                             }
@@ -172,4 +177,24 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
         ) { Text("Guardar") } },
         dismissButton = { TextButton(enabled = !busy, onClick = { showAdd = false }) { Text("Cancelar") } }
     )
+    pendingDelete?.let { (id, isReminder) ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text(if (isReminder) "Quitar recordatorio" else "Quitar vacuna") },
+            text = { Text("Este registro se eliminará del dispositivo.") },
+            confirmButton = { Button(onClick = {
+                pendingDelete = null
+                scope.launch {
+                    runCatching {
+                        if (isReminder) {
+                            dao.deleteReminder(id)
+                            ReminderNotifications.cancel(context, id)
+                        } else dao.deleteVaccine(id)
+                    }.onFailure { error = "No se pudo eliminar el registro" }
+                }
+            }) { Text("Eliminar") } },
+            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancelar") } }
+        )
+    }
+
 }
