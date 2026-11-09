@@ -1,6 +1,16 @@
 package pe.mimascota.app.ui
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.widget.ImageView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -33,7 +43,9 @@ fun AccountScreen(
     onModeration: () -> Unit,
     onBackup: () -> Unit,
     onEraseLocal: suspend () -> Unit,
-    preferredMethod: String = "GOOGLE"
+    preferredMethod: String = "GOOGLE",
+    onSettings: () -> Unit = {},
+    onAbout: () -> Unit = {}
 ) {
     val activity = LocalContext.current as Activity
     val scope = rememberCoroutineScope()
@@ -46,6 +58,18 @@ fun AccountScreen(
     var accountEmail by remember { mutableStateOf("") }
     var accountPassword by remember { mutableStateOf("") }
     var registering by remember { mutableStateOf(false) }
+    val avatarPrefs = remember { activity.getSharedPreferences("mi_mascota_ui", Activity.MODE_PRIVATE) }
+    var avatarUri by remember { mutableStateOf(avatarPrefs.getString("account_avatar", null)) }
+    val avatarPicker = rememberLauncherForActivityResult(OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching {
+                activity.contentResolver.takePersistableUriPermission(uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                avatarUri = uri.toString()
+                avatarPrefs.edit().putString("account_avatar", avatarUri).apply()
+            }.onFailure { message = "No se pudo seleccionar la imagen de perfil." }
+        }
+    }
     var message by remember { mutableStateOf<String?>(null) }
     var eraseTarget by remember { mutableStateOf<String?>(null) }
     val accountName = if (configured && uid != null)
@@ -59,10 +83,27 @@ fun AccountScreen(
             Brush.verticalGradient(listOf(Color(0xFF005766), Color(0xFF009E9A)))
         ).padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = onBack) { Text("← Volver", color = Color.White) }
-            Text("👤 Mi cuenta", style = MaterialTheme.typography.headlineMedium, color = Color.White,
-                fontWeight = FontWeight.Bold)
-            Text("🐾 $accountName", style = MaterialTheme.typography.titleLarge, color = Color.White)
-            Text(email ?: "Tu espacio de cuidado animal", color = Color.White)
+            Text("👤 Mi cuenta", style = MaterialTheme.typography.headlineMedium,
+                color = Color.White, fontWeight = FontWeight.Bold)
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(85.dp).clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.25f)),
+                    contentAlignment = Alignment.Center) {
+                    if (avatarUri == null) Text("👤", fontSize = 53.sp)
+                    else AndroidView(factory = { ctx -> ImageView(ctx).apply {
+                        scaleType = ImageView.ScaleType.CENTER_CROP
+                    } }, update = { view ->
+                        runCatching { view.setImageURI(Uri.parse(avatarUri)) }
+                            .onFailure { view.setImageDrawable(null) }
+                    }, modifier = Modifier.fillMaxSize().clip(CircleShape))
+                }
+                TextButton(onClick = { avatarPicker.launch(arrayOf("image/*")) }) {
+                    Text("📷 Cambiar foto", color = Color.White)
+                }
+                Text(accountName, style = MaterialTheme.typography.titleLarge,
+                    color = Color.White, fontWeight = FontWeight.Bold)
+                Text(email ?: "Tu espacio de cuidado animal", color = Color.White)
+            }
         }
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             ElevatedCard(shape = RoundedCornerShape(22.dp)) {
@@ -151,6 +192,12 @@ fun AccountScreen(
                     Text("Los datos locales no se sincronizan automáticamente con Google.")
                     OutlinedButton(onClick = onBackup, modifier = Modifier.fillMaxWidth()) {
                         Text("📦 Respaldar y restaurar")
+                    }
+                    OutlinedButton(onClick = onSettings, modifier = Modifier.fillMaxWidth()) {
+                        Text("⚙️ Configuración")
+                    }
+                    OutlinedButton(onClick = onAbout, modifier = Modifier.fillMaxWidth()) {
+                        Text("ℹ️ Acerca de")
                     }
                     HorizontalDivider()
                     Text("🛡️ Privacidad y seguridad", style = MaterialTheme.typography.titleMedium)
