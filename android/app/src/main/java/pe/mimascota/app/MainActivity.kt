@@ -211,7 +211,7 @@ class MainActivity : ComponentActivity() {
                                 photos = allPhotos, selectedId = selectedPetId,
                                 onSelectPet = { selectedPetId = it },
                                 openPetsToken = petsRequest, openAddToken = addRequest,
-                                onHealth = { destination = Destination.Health(it) },
+                                onHealth = { destination = Destination.Health(it, 2) },
                                 onVaccines = { destination = Destination.Health(it, 0) },
                                 onReminders = { destination = Destination.Health(it, 1) },
                                 onPhotos = { destination = Destination.Photos(it) },
@@ -226,7 +226,10 @@ class MainActivity : ComponentActivity() {
                                 onProfile = { destination = Destination.Profile(it) },
                                 onTips = { destination = Destination.CareTips })
                             Destination.Community -> CommunityScreen(onBack = goBack,
-                                onAccount = { destination = Destination.Account })
+                                onAccount = { destination = Destination.Account },
+                                onAdoption = { destination = Destination.Adoption },
+                                onLost = { destination = Destination.Lost },
+                                onTips = { destination = Destination.CareTips })
                             Destination.Companion -> CompanionScreen(onBack = goBack)
                             Destination.CareTips -> CareTipsScreen(onBack = goBack,
                                 onHealth = {
@@ -272,7 +275,7 @@ class MainActivity : ComponentActivity() {
                             is Destination.Profile -> PetProfileScreen(
                                 allPets.firstOrNull { it.id == page.petId },
                                 database.healthDao(), database.expenseDao(), vm, onBack = goBack,
-                                onHealth = { destination = Destination.Health(page.petId, 1) },
+                                onHealth = { destination = Destination.Health(page.petId, 2) },
                                 onVaccines = { destination = Destination.Health(page.petId, 0) },
                                 onPhotos = { destination = Destination.Photos(page.petId) },
                                 onExpenses = { destination = Destination.Expenses(page.petId) })
