@@ -74,11 +74,18 @@ fun PetsScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var pendingDelete by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
+    fun openAddDialog() {
+        name = ""
+        species = "CAT"
+        birthDate = ""
+        error = null
+        showAdd = true
+    }
     LaunchedEffect(openPetsToken) { if (openPetsToken > 0) showPets = true }
-    LaunchedEffect(openAddToken) { if (openAddToken > 0) showAdd = true }
+    LaunchedEffect(openAddToken) { if (openAddToken > 0) openAddDialog() }
     fun withPet(action: (String) -> Unit) {
         val id = activePet?.id
-        if (id != null) action(id) else showAdd = true
+        if (id != null) action(id) else openAddDialog()
     }
 
     Scaffold(containerColor = Canvas) { padding ->
@@ -132,7 +139,7 @@ fun PetsScreen(
                                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
                                 }
                             }
-                            Column(Modifier.width(78.dp).clickable { showAdd = true },
+                            Column(Modifier.width(78.dp).clickable { openAddDialog() },
                                 horizontalAlignment = Alignment.CenterHorizontally) {
                                 Box(Modifier.size(64.dp).clip(CircleShape)
                                     .background(Color(0xFFD6EAFB)),
@@ -216,7 +223,8 @@ fun PetsScreen(
         onDismissRequest = { showPets = false },
         title = { Text("🐾 Mis mascotas") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (pets.isEmpty()) Text("Aún no has registrado mascotas.")
                 pets.forEach { pet ->
                     OutlinedButton(
@@ -226,7 +234,7 @@ fun PetsScreen(
                         Text("${if (pet.species == "DOG") "🐶" else "🐱"} ${pet.name}")
                     }
                 }
-                Button(onClick = { showPets = false; showAdd = true }, modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = { showPets = false; openAddDialog() }, modifier = Modifier.fillMaxWidth()) {
                     Text("➕ Registrar nueva mascota")
                 }
             }
@@ -237,7 +245,8 @@ fun PetsScreen(
         onDismissRequest = { if (!saving) editingId = null },
         title = { Text("✏️ Editar mascota") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.heightIn(max = 410.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("Nombre") })
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilterChip(selected = species == "CAT", onClick = { species = "CAT" }, label = { Text("Gato") })
@@ -299,8 +308,12 @@ fun PetsScreen(
         title = { Text("Eliminar mascota") },
         text = { Text("Se eliminarán los datos locales asociados a esta mascota. Esta acción no se puede deshacer.") },
         confirmButton = { TextButton(onClick = {
-            pendingDelete?.let { id -> viewModel.remove(id) { failure -> error = failure } }
-            onSelectPet(null)
+            pendingDelete?.let { id ->
+                viewModel.remove(id) { failure ->
+                    error = failure
+                    if (failure == null) onSelectPet(null)
+                }
+            }
             pendingDelete = null
         }) { Text("Eliminar") } },
         dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancelar") } }
