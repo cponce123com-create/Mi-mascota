@@ -14,6 +14,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -29,14 +32,20 @@ fun AccountScreen(
     onBack: () -> Unit,
     onModeration: () -> Unit,
     onBackup: () -> Unit,
-    onEraseLocal: suspend () -> Unit
+    onEraseLocal: suspend () -> Unit,
+    preferredMethod: String = "GOOGLE"
 ) {
     val activity = LocalContext.current as Activity
     val scope = rememberCoroutineScope()
-    val configured = FirebaseApp.getApps(activity).isNotEmpty() && BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotBlank()
+    val configured = FirebaseApp.getApps(activity).isNotEmpty()
+    val googleConfigured = configured && BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotBlank()
     val apiConfigured = BuildConfig.API_BASE_URL.startsWith("https://")
     var uid by remember { mutableStateOf(if (configured) FirebaseAuth.getInstance().currentUser?.uid else null) }
     var busy by remember { mutableStateOf(false) }
+    var method by remember(preferredMethod) { mutableStateOf(preferredMethod) }
+    var accountEmail by remember { mutableStateOf("") }
+    var accountPassword by remember { mutableStateOf("") }
+    var registering by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var eraseTarget by remember { mutableStateOf<String?>(null) }
     val accountName = if (configured && uid != null)
@@ -60,19 +69,64 @@ fun AccountScreen(
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("🔐 Acceso", style = MaterialTheme.typography.titleMedium)
                     if (!configured) {
-                        Text("Google Sign-In no está configurado. La app sigue funcionando offline.")
-                        Text("Para activarlo añade google-services.json y GOOGLE_WEB_CLIENT_ID en tu entorno de desarrollo.",
+                        Text("Acceso en línea todavía no configurado. Puedes usar Mi Mascota sin cuenta.")
+                        Text("Añade google-services.json y activa el proveedor correspondiente en Firebase.",
                             style = MaterialTheme.typography.bodySmall)
                     } else if (uid == null) {
-                        Button(enabled = !busy, modifier = Modifier.fillMaxWidth(), onClick = {
-                            busy = true
-                            scope.launch {
-                                val result = GoogleSignInManager(activity, BuildConfig.GOOGLE_WEB_CLIENT_ID).signIn()
-                                result.onSuccess { uid = it; message = "Sesión iniciada." }
-                                    .onFailure { message = "Error de acceso: ${it.localizedMessage}" }
-                                busy = false
+                        Row(Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = method == "GOOGLE",
+                                onClick = { method = "GOOGLE"; message = null },
+                                label = { Text("🌐 Google") })
+                            FilterChip(selected = method == "EMAIL",
+                                onClick = { method = "EMAIL"; message = null },
+                                label = { Text("✉️ Correo") })
+                        }
+                        if (method == "GOOGLE") {
+                            if (googleConfigured) {
+                                Button(enabled = !busy, modifier = Modifier.fillMaxWidth(), onClick = {
+                                    busy = true
+                                    scope.launch {
+                                        val result = GoogleSignInManager(activity, BuildConfig.GOOGLE_WEB_CLIENT_ID).signIn()
+                                        result.onSuccess { uid = it; message = "Sesión iniciada." }
+                                            .onFailure { message = "No se pudo iniciar sesión con Google." }
+                                        busy = false
+                                    }
+                                }) { Text(if (busy) "Conectando..." else "Continuar con Google") }
+                            } else Text("Configura GOOGLE_WEB_CLIENT_ID para iniciar sesión con Google.")
+                        } else {
+                            OutlinedTextField(accountEmail, { accountEmail = it.trim().take(254) },
+                                modifier = Modifier.fillMaxWidth(), label = { Text("Correo electrónico") },
+                                singleLine = true)
+                            OutlinedTextField(accountPassword, { accountPassword = it },
+                                modifier = Modifier.fillMaxWidth(), label = { Text("Contraseña") },
+                                visualTransformation = PasswordVisualTransformation(), singleLine = true)
+                            Button(enabled = !busy && accountEmail.contains("@") && accountPassword.length >= 6,
+                                modifier = Modifier.fillMaxWidth(), onClick = {
+                                    busy = true
+                                    scope.launch {
+                                        runCatching {
+                                            val auth = FirebaseAuth.getInstance()
+                                            val result = if (registering)
+                                                auth.createUserWithEmailAndPassword(accountEmail, accountPassword).await()
+                                            else auth.signInWithEmailAndPassword(accountEmail, accountPassword).await()
+                                            result.user?.uid ?: error("Sin usuario")
+                                        }.onSuccess {
+                                            uid = it
+                                            accountPassword = ""
+                                            message = if (registering)
+                                                "Cuenta creada. Verifica tu correo cuando Firebase lo solicite."
+                                            else "Sesión iniciada."
+                                        }.onFailure { message = "No se pudo completar el acceso. Verifica tus datos y que el método esté habilitado en Firebase." }
+                                        busy = false
+                                    }
+                                }) { Text(if (registering) "Crear cuenta" else "Entrar con correo") }
+                            TextButton(onClick = { registering = !registering; message = null }) {
+                                Text(if (registering) "Ya tengo cuenta" else "Crear una cuenta")
                             }
-                        }) { Text(if (busy) "Conectando..." else "Continuar con Google") }
+                            Text("El acceso con correo requiere activar Email/Password en Firebase.",
+                                style = MaterialTheme.typography.bodySmall)
+                        }
                     } else {
                         Text("Sesión iniciada")
                         OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
@@ -93,6 +147,7 @@ fun AccountScreen(
             ElevatedCard(shape = RoundedCornerShape(22.dp)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("☁️ Datos y respaldos", style = MaterialTheme.typography.titleMedium)
+                    PetInfoRow("Sincronización en la nube", "No activada", "☁️")
                     Text("Los datos locales no se sincronizan automáticamente con Google.")
                     OutlinedButton(onClick = onBackup, modifier = Modifier.fillMaxWidth()) {
                         Text("📦 Respaldar y restaurar")
