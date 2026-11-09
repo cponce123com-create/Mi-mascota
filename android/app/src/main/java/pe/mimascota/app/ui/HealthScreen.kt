@@ -4,6 +4,8 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +25,7 @@ import pe.mimascota.app.data.ReminderEntity
 import pe.mimascota.app.data.VaccineEntity
 import pe.mimascota.app.notifications.ReminderNotifications
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 @Composable
@@ -55,7 +58,7 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
         Column(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxWidth().background(Color(0xFF006574)).padding(16.dp)) {
                 TextButton(onClick = onBack) { Text("← Volver", color = Color.White) }
-                Text(if (tab == 0) "💉 Vacunas" else "📅 Recordatorios",
+                Text(when (tab) { 0 -> "💉 Vacunas"; 1 -> "📅 Recordatorios"; else -> "💗 Salud" },
                     color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             }
             Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -66,7 +69,9 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = tab == 2, onClick = { tab = 2 }, label = { Text("💗 Salud") })
                     FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("💉 Vacunas") })
                     FilterChip(selected = tab == 1, onClick = { tab = 1 }, label = { Text("📅 Recordatorios") })
                 }
@@ -78,7 +83,35 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
                 }
                 LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(bottom = 90.dp)) {
-                    if (tab == 0) {
+                    if (tab == 2) {
+                        item {
+                            PetRoundedCard {
+                                Text("💗 Resumen de salud",
+                                    style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text("Organiza los cuidados de ${petName.ifBlank { "tu mascota" }}.")
+                                HorizontalDivider()
+                                PetInfoRow("Vacunas registradas", "${vaccines.size}", "💉")
+                                PetInfoRow("Recordatorios pendientes",
+                                    "${reminders.count { !it.completed }}", "🔔")
+                                PetInfoRow("Próxima vacuna",
+                                    nextVaccine?.dueAt ?: "Sin fecha", "📅")
+                                Button(onClick = { tab = 0 },
+                                    modifier = Modifier.fillMaxWidth()) { Text("Ver vacunas") }
+                                OutlinedButton(onClick = { tab = 1 },
+                                    modifier = Modifier.fillMaxWidth()) { Text("Ver recordatorios") }
+                            }
+                        }
+                        item {
+                            PetRoundedCard {
+                                Text("🩺 Historial de cuidado", style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold)
+                                Text("Este módulo reúne las vacunas y los recordatorios guardados en tu dispositivo.")
+                                Text("El diagnóstico, las recetas médicas y los resultados de laboratorio aún no están disponibles.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = PetPalette.Muted)
+                            }
+                        }
+                    } else if (tab == 0) {
                         item {
                             ElevatedCard(shape = RoundedCornerShape(20.dp),
                                 colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFDDF5E8))) {
@@ -86,7 +119,20 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
                                     Text("🛡️ Próxima vacuna", style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold)
                                     Text(nextVaccine?.name ?: "Sin vacunas próximas registradas")
-                                    nextVaccine?.dueAt?.let { Text("📅 $it") }
+                                    nextVaccine?.dueAt?.let { due ->
+                                        Text("📅 $due")
+                                        val days = runCatching {
+                                            ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(due))
+                                        }.getOrNull()
+                                        if (days != null) {
+                                            Surface(shape = RoundedCornerShape(16.dp),
+                                                color = Color(0xFFAFEDBB)) {
+                                                Text(if (days == 0L) "¡Es hoy!" else "Faltan $days días",
+                                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                                    color = Color(0xFF075E2A), fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -98,7 +144,9 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
                                     supportingContent = {
                                         Text("Aplicada: ${item.appliedAt ?: "Sin indicar"} · Próxima: ${item.dueAt ?: "Sin indicar"}")
                                     },
-                                    trailingContent = { TextButton(onClick = { pendingDelete = item.id to false }) { Text("Quitar") } })
+                                    trailingContent = { IconButton(onClick = { pendingDelete = item.id to false }) {
+                                        Text("✕")
+                                    } })
                             }
                         }
                     } else {
@@ -114,14 +162,15 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
                                     supportingContent = { Text("📅 ${item.dueAt}") },
                                     leadingContent = { Text("🔔") },
                                     trailingContent = {
-                                        Row {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
                                         Switch(checked = !item.completed, onCheckedChange = { active ->
                                             scope.launch {
                                                 runCatching { dao.completeReminder(item.id, !active) }
                                                     .onFailure { error = "No se pudo cambiar el recordatorio" }
                                             }
                                         })
-                                        TextButton(onClick = { pendingDelete = item.id to true }) { Text("×") }
+                                        IconButton(onClick = { pendingDelete = item.id to true },
+                                            modifier = Modifier.size(42.dp)) { Text("×") }
                                         }
                                     }
                                 )
@@ -131,7 +180,7 @@ fun HealthScreen(petId: String, dao: HealthDao, onBack: () -> Unit, petName: Str
                 }
             }
         }
-        FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)) {
+        FloatingActionButton(onClick = { if (tab == 2) tab = 1 else showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)) {
             Text("+", style = MaterialTheme.typography.headlineMedium)
         }
     }
