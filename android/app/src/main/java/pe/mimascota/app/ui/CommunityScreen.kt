@@ -1,6 +1,10 @@
 package pe.mimascota.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +24,8 @@ import pe.mimascota.app.data.LostPetListing
 import pe.mimascota.app.data.communityToken
 
 @Composable
-fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
+fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {},
+    onAdoption: () -> Unit = {}, onLost: () -> Unit = {}, onTips: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val api = remember { CommunityApi(BuildConfig.API_BASE_URL) }
     val configured = BuildConfig.API_BASE_URL.startsWith("https://")
@@ -63,20 +68,25 @@ fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
         }
     }
     LaunchedEffect(configured) { if (configured) refresh() }
-    Column(Modifier.fillMaxSize().background(Color(0xFFF0F8FA))) {
-        Column(Modifier.fillMaxWidth().background(Color(0xFF006574)).padding(16.dp)) {
-            TextButton(onClick = onBack) { Text("← Volver", color = Color.White) }
-            Text("👥 Comunidad Mascotera", style = MaterialTheme.typography.headlineMedium,
-                color = Color.White, fontWeight = FontWeight.Bold)
-            Text("Historias, apoyo y mascotas que nos unen", color = Color.White)
-        }
+    Box(Modifier.fillMaxSize().background(PetPalette.Mist)) {
+    Column(Modifier.fillMaxSize()) {
+        PetHeader("🐾 Comunidad", onBack,
+            subtitle = "Historias, apoyo y mascotas que nos unen.")
         Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("Publicaciones") })
+            Row(Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("Todo") })
+                FilterChip(selected = false, onClick = onAdoption, label = { Text("Adopción") })
                 FilterChip(selected = tab == 1, onClick = { tab = 1 }, label = { Text("Perdidos") })
+                FilterChip(selected = false, onClick = onTips, label = { Text("Consejos") })
             }
             if (!configured) {
-                Text("El servidor comunitario HTTPS no está configurado. Tus datos locales siguen disponibles.")
+                PetRoundedCard {
+                    Text("🌐 Comunidad en línea", style = MaterialTheme.typography.titleMedium)
+                    Text("El servidor HTTPS aún no está configurado. Tus datos locales siguen disponibles.")
+                    OutlinedButton(onClick = onAdoption) { Text("🏡 Ver adopciones") }
+                    OutlinedButton(onClick = onLost) { Text("📢 Mascotas perdidas") }
+                }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { composing = true }, modifier = Modifier.weight(1f)) { Text("✍️ Publicar") }
@@ -91,9 +101,11 @@ fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
                         items(posts) { post ->
                             ElevatedCard(shape = RoundedCornerShape(18.dp)) {
                                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text("🐾 ${post.title}", style = MaterialTheme.typography.titleMedium,
+                                    Text("🐾 Comunidad · Publicación aprobada",
+                                        color = PetPalette.Muted, style = MaterialTheme.typography.labelSmall)
+                                    Text(post.title, style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold)
-                                    Text(post.body)
+                                    Text(post.body, maxLines = 6, overflow = TextOverflow.Ellipsis)
                                     TextButton(onClick = {
                                         viewingPost = post
                                         commentText = ""
@@ -103,6 +115,9 @@ fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
                             }
                         }
                     } else {
+                        item { OutlinedButton(onClick = onLost, modifier = Modifier.fillMaxWidth()) {
+                            Text("📢 Reportar mascota perdida")
+                        } }
                         if (lost.isEmpty() && !loading && error == null) item { Text("No hay alertas aprobadas activas.") }
                         items(lost) { pet ->
                             ElevatedCard(shape = RoundedCornerShape(18.dp)) {
@@ -116,6 +131,13 @@ fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
                 }
             }
         }
+    }
+    FloatingActionButton(onClick = {
+        if (configured) composing = true else message = "Primero configura el servidor comunitario."
+    }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+        containerColor = PetPalette.Green, contentColor = Color.White) {
+        Text("+", style = MaterialTheme.typography.headlineMedium)
+    }
     }
     if (composing) AlertDialog(
         onDismissRequest = { if (!sending) composing = false },
@@ -154,6 +176,7 @@ fun CommunityScreen(onBack: () -> Unit, onAccount: () -> Unit = {}) {
             title = { Text("💬 ${post.title}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(post.body, maxLines = 4, overflow = TextOverflow.Ellipsis)
                     if (commentsBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
                     commentMessage?.let { Text(it) }
                     LazyColumn(Modifier.heightIn(max = 220.dp)) {
