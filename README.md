@@ -28,6 +28,14 @@
 <tr><td align="center">💰<br/><b>Control</b><br/>Gastos en soles</td><td align="center">🌐<br/><b>Comunidad</b><br/>Publicaciones y alertas</td><td align="center">🎮<br/><b>Experiencia</b><br/>Compañero virtual</td></tr>
 </table>
 
+## 🎨 Interfaz inspirada en el boceto aprobado
+
+El diseño de Android adopta la **paleta verde petróleo + turquesa + celeste claro**, tarjetas blancas con bordes redondeados, accesos coloridos y navegación inferior vectorial. Incluye una bienvenida opcional, perfiles fotográficos, vacunación, recordatorios, comunidad con cuatro secciones, cuenta, galería y gastos.
+
+La imagen de referencia era una composición visual: **no contiene automáticamente fotografías individuales, datos comunitarios ni servicios configurados**. La app utiliza imágenes reales seleccionadas por el usuario y muestra estados vacíos cuando todavía no hay datos.
+
+📋 [Ver comparación pantalla por pantalla, cableado y recursos pendientes](docs/GUI_BOCETO_PARIDAD.md).
+
 ## 🧩 Funcionalidades
 
 | Módulo | Implementado en el código | Límite actual |
@@ -37,12 +45,12 @@
 | 📅 Recordatorios | Estado pendiente/completado y avisos locales con WorkManager | Los avisos no son exactos; push FCM pendiente |
 | 💰 Gastos | Movimientos y totales en soles | Sin reportes analíticos exportables |
 | 📷 Álbum | Miniaturas, visor y eliminación de referencias | No existe almacenamiento remoto automático |
-| 💾 Respaldo | Exportación y restauración JSON v1–v3; ZIP con archivos fotográficos | ZIP/JSON aún sin cifrado; fotos inaccesibles se omiten |
+| 💾 Respaldo | JSON y ZIP con fotografías; exportación/importación cifrada con contraseña | Falta validación integral en dispositivos y recuperación avanzada de conflictos |
 | 🏡 Adopciones | Publicaciones, solicitudes, estados y cierre en Android/API | Requiere Firebase, servidor y moderación configurados |
 | 📢 Perdidos | Avisos de mascotas, estado, cierre y revisión | Fotografías remotas, geolocalización de alertas y push pendientes |
-| 🌐 Comunidad | Lectura y creación de publicaciones con moderación previa | Sin comentarios ni chat |
+| 🌐 Comunidad | Publicaciones, comentarios y vistas de adopciones/perdidos; chat privado de solicitudes | Requiere servidor, moderación y datos reales; faltan imágenes en el feed |
 | 🛡️ Moderación | Cola de revisión y aprobación/rechazo, autorizada por UID | Requiere configurar `MODERATOR_UIDS` |
-| 🔐 Cuenta | Google/Firebase Sign-In opcional desde la app | Requiere proyecto Firebase real y OAuth |
+| 🔐 Cuenta | Bienvenida, modo invitado, acceso Google/correo opcionales, avatar local y configuración | Requiere Firebase real; la sincronización automática no está disponible |
 | 🗺️ Veterinarias | Mapa integrado OpenStreetMap, permiso aproximado opcional y apertura de mapas externos | Sin directorio veterinario verificado |
 | 🎮 Juegos | Compañero virtual persistente y minijuego de huellas | Animaciones y minijuegos avanzados pendientes |
 | 📲 APK | Compilación debug y artifact descargable en GitHub Actions | No es APK firmado de producción |
