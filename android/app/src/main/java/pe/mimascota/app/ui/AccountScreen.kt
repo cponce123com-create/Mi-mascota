@@ -58,6 +58,7 @@ fun AccountScreen(
     var accountEmail by remember { mutableStateOf("") }
     var accountPassword by remember { mutableStateOf("") }
     var registering by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf<String?>(null) }
     val avatarPrefs = remember { activity.getSharedPreferences("mi_mascota_ui", Activity.MODE_PRIVATE) }
     var avatarUri by remember { mutableStateOf(avatarPrefs.getString("account_avatar", null)) }
     val avatarPicker = rememberLauncherForActivityResult(OpenDocument()) { uri ->
@@ -70,7 +71,6 @@ fun AccountScreen(
             }.onFailure { message = "No se pudo seleccionar la imagen de perfil." }
         }
     }
-    var message by remember { mutableStateOf<String?>(null) }
     var eraseTarget by remember { mutableStateOf<String?>(null) }
     val accountName = if (configured && uid != null)
         FirebaseAuth.getInstance().currentUser?.displayName?.takeIf { it.isNotBlank() } ?: "Mi cuenta"
