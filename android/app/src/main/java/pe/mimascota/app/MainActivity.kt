@@ -8,9 +8,22 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Pets
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.lightColorScheme
@@ -37,6 +50,8 @@ import pe.mimascota.app.ui.PetsScreen
 import pe.mimascota.app.ui.PetProfileScreen
 import pe.mimascota.app.ui.ModerationScreen
 import pe.mimascota.app.ui.AdoptionChatScreen
+import pe.mimascota.app.ui.CareTipsScreen
+import pe.mimascota.app.ui.PetPalette
 import pe.mimascota.app.notifications.ReminderNotifications
 import pe.mimascota.app.data.PushSubscription
 import pe.mimascota.app.data.CompanionRepository
@@ -79,6 +94,7 @@ private sealed interface Destination {
     data object Account : Destination
     data object Moderation : Destination
     data class AdoptionChat(val applicationId: String) : Destination
+    data object CareTips : Destination
     data object Adoption : Destination
     data object Lost : Destination
     data class Profile(val petId: String) : Destination
@@ -128,31 +144,33 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     containerColor = Color(0xFFF0F8FA),
                     bottomBar = {
-                        NavigationBar(containerColor = Color.White) {
+                        if (destination == Destination.Pets || destination == Destination.Community) NavigationBar(containerColor = Color.White, tonalElevation = 5.dp) {
                             NavigationBarItem(
                                 selected = destination == Destination.Pets,
                                 onClick = { destination = Destination.Pets },
-                                icon = { Text("🏠") }, label = { Text("Inicio") }
+                                icon = { Icon(Icons.Outlined.Home, contentDescription = "Inicio") }, label = { Text("Inicio", maxLines = 1) }
                             )
                             NavigationBarItem(
                                 selected = destination is Destination.Profile,
                                 onClick = { petsRequest++; destination = Destination.Pets },
-                                icon = { Text("🐾") }, label = { Text("Mascotas") }
+                                icon = { Icon(Icons.Outlined.Pets, contentDescription = "Mascotas") }, label = { Text("Mascotas", maxLines = 1) }
                             )
                             NavigationBarItem(
                                 selected = false,
                                 onClick = { addRequest++; destination = Destination.Pets },
-                                icon = { Text("➕") }, label = { Text("Agregar") }
+                                icon = { Box(Modifier.size(44.dp).clip(CircleShape).background(PetPalette.Green), contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.Add, contentDescription = "Agregar mascota", tint = Color.White)
+                                } }, label = { Text("Agregar", maxLines = 1) }
                             )
                             NavigationBarItem(
                                 selected = destination == Destination.Community,
                                 onClick = { destination = Destination.Community },
-                                icon = { Text("👥") }, label = { Text("Comunidad") }
+                                icon = { Icon(Icons.Outlined.Groups, contentDescription = "Comunidad") }, label = { Text("Comunidad", maxLines = 1) }
                             )
                             NavigationBarItem(
                                 selected = destination == Destination.Account || destination == Destination.Moderation,
                                 onClick = { destination = Destination.Account },
-                                icon = { Text("👤") }, label = { Text("Cuenta") }
+                                icon = { Icon(Icons.Outlined.Person, contentDescription = "Cuenta") }, label = { Text("Cuenta", maxLines = 1) }
                             )
                         }
                     }
@@ -175,10 +193,17 @@ class MainActivity : ComponentActivity() {
                                 onAccount = { destination = Destination.Account },
                                 onAdoption = { destination = Destination.Adoption },
                                 onLost = { destination = Destination.Lost },
-                                onProfile = { destination = Destination.Profile(it) })
+                                onProfile = { destination = Destination.Profile(it) },
+                                onTips = { destination = Destination.CareTips })
                             Destination.Community -> CommunityScreen(onBack = goBack,
                                 onAccount = { destination = Destination.Account })
                             Destination.Companion -> CompanionScreen(onBack = goBack)
+                            Destination.CareTips -> CareTipsScreen(onBack = goBack,
+                                onHealth = {
+                                    val active = allPets.firstOrNull { it.id == selectedPetId } ?: allPets.firstOrNull()
+                                    if (active != null) destination = Destination.Health(active.id)
+                                    else { addRequest++; destination = Destination.Pets }
+                                }, onVets = { destination = Destination.Vets })
                             Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
                             Destination.Account -> AccountScreen(onBack = goBack,
                                 onModeration = { destination = Destination.Moderation },
