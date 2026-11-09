@@ -52,6 +52,7 @@ import pe.mimascota.app.ui.ModerationScreen
 import pe.mimascota.app.ui.AdoptionChatScreen
 import pe.mimascota.app.ui.CareTipsScreen
 import pe.mimascota.app.ui.WelcomeScreen
+import pe.mimascota.app.ui.AppSettingsScreen
 import pe.mimascota.app.ui.PetPalette
 import pe.mimascota.app.notifications.ReminderNotifications
 import pe.mimascota.app.data.PushSubscription
@@ -93,6 +94,8 @@ private sealed interface Destination {
     data object Backup : Destination
     data object Vets : Destination
     data object Account : Destination
+    data object Settings : Destination
+    data object About : Destination
     data object Moderation : Destination
     data class AdoptionChat(val applicationId: String) : Destination
     data object CareTips : Destination
@@ -238,8 +241,18 @@ class MainActivity : ComponentActivity() {
                                     else { addRequest++; destination = Destination.Pets }
                                 }, onVets = { destination = Destination.Vets })
                             Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
+                            Destination.Settings -> AppSettingsScreen("SETTINGS",
+                                onBack = { destination = Destination.Account },
+                                onBackup = { destination = Destination.Backup },
+                                onTips = { destination = Destination.CareTips })
+                            Destination.About -> AppSettingsScreen("ABOUT",
+                                onBack = { destination = Destination.Account },
+                                onBackup = { destination = Destination.Backup },
+                                onTips = { destination = Destination.CareTips })
                             Destination.Account -> AccountScreen(onBack = goBack,
                                 preferredMethod = accountMethod,
+                                onSettings = { destination = Destination.Settings },
+                                onAbout = { destination = Destination.About },
                                 onModeration = { destination = Destination.Moderation },
                                 onBackup = { destination = Destination.Backup },
                                 onEraseLocal = {
