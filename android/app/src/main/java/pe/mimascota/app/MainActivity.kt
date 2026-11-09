@@ -51,6 +51,7 @@ import pe.mimascota.app.ui.PetProfileScreen
 import pe.mimascota.app.ui.ModerationScreen
 import pe.mimascota.app.ui.AdoptionChatScreen
 import pe.mimascota.app.ui.CareTipsScreen
+import pe.mimascota.app.ui.WelcomeScreen
 import pe.mimascota.app.ui.PetPalette
 import pe.mimascota.app.notifications.ReminderNotifications
 import pe.mimascota.app.data.PushSubscription
@@ -114,6 +115,17 @@ class MainActivity : ComponentActivity() {
         val vm = ViewModelProvider(this, PetViewModelFactory(PetRepository(database.petDao())))[PetViewModel::class.java]
         setContent {
             var destination by remember { mutableStateOf<Destination>(Destination.Pets) }
+            val welcomePrefs = remember {
+                getSharedPreferences("mi_mascota_ui", MODE_PRIVATE)
+            }
+            var showWelcome by rememberSaveable {
+                mutableStateOf(!welcomePrefs.getBoolean("welcome_seen", false))
+            }
+            var accountMethod by remember { mutableStateOf("GOOGLE") }
+            fun dismissWelcome() {
+                welcomePrefs.edit().putBoolean("welcome_seen", true).apply()
+                showWelcome = false
+            }
             var selectedPetId by rememberSaveable { mutableStateOf<String?>(null) }
             var petsRequest by remember { mutableIntStateOf(0) }
             var addRequest by remember { mutableIntStateOf(0) }
@@ -141,7 +153,25 @@ class MainActivity : ComponentActivity() {
                     error = Color(0xFFB3261E)
                 )
             ) {
-                Scaffold(
+                if (showWelcome) {
+                    WelcomeScreen(
+                        photoUri = allPhotos.firstOrNull()?.uri,
+                        onGoogle = {
+                            dismissWelcome()
+                            accountMethod = "GOOGLE"
+                            destination = Destination.Account
+                        },
+                        onEmail = {
+                            dismissWelcome()
+                            accountMethod = "EMAIL"
+                            destination = Destination.Account
+                        },
+                        onGuest = {
+                            dismissWelcome()
+                            destination = Destination.Pets
+                        }
+                    )
+                } else Scaffold(
                     containerColor = Color(0xFFF0F8FA),
                     bottomBar = {
                         if (destination == Destination.Pets || destination == Destination.Community) NavigationBar(containerColor = Color.White, tonalElevation = 5.dp) {
@@ -206,6 +236,7 @@ class MainActivity : ComponentActivity() {
                                 }, onVets = { destination = Destination.Vets })
                             Destination.Backup -> BackupScreen(database.backupDao(), onBack = goBack)
                             Destination.Account -> AccountScreen(onBack = goBack,
+                                preferredMethod = accountMethod,
                                 onModeration = { destination = Destination.Moderation },
                                 onBackup = { destination = Destination.Backup },
                                 onEraseLocal = {
