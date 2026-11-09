@@ -15,6 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.horizontalScroll
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,6 +39,7 @@ fun PetProfileScreen(
     viewModel: PetViewModel,
     onBack: () -> Unit,
     onHealth: () -> Unit,
+    onVaccines: () -> Unit,
     onPhotos: () -> Unit,
     onExpenses: () -> Unit
 ) {
@@ -57,8 +63,10 @@ fun PetProfileScreen(
     ) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
     val age = pet.birthDate?.let { runCatching { Period.between(LocalDate.parse(it), LocalDate.now()).years }.getOrNull() }
-    Column(Modifier.fillMaxSize().background(Color(0xFFF0F8FA)).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(Color(0xFFF0F8FA)).verticalScroll(scrollState)) {
         Box(Modifier.fillMaxWidth().height(285.dp)) {
             val imageUri = photos.firstOrNull()?.uri
             if (imageUri != null) {
@@ -74,24 +82,34 @@ fun PetProfileScreen(
             }
             Box(Modifier.fillMaxSize().background(
                 Brush.verticalGradient(listOf(Color(0x80000000), Color.Transparent, Color(0xB8000000)))))
-            Column(Modifier.align(Alignment.TopStart).padding(14.dp)) {
-                TextButton(onClick = onBack) { Text("← Volver", color = Color.White) }
+            Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onBack) { Text("❮", color = Color.White, fontSize = 25.sp) }
+                Row {
+                    IconButton(onClick = { editing = true; error = null }) {
+                        Text("✏️", fontSize = 22.sp)
+                    }
+                    IconButton(onClick = onPhotos) { Text("📷", fontSize = 22.sp) }
+                }
             }
             Column(Modifier.align(Alignment.BottomStart).padding(22.dp)) {
                 Text(pet.name, color = Color.White, fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.headlineLarge)
                 Text("${when (pet.species) { "DOG" -> "Perro"; "CAT" -> "Gato"; else -> "Otra especie" }} · ${pet.breed ?: "Raza sin indicar"}${age?.let { " · $it años" } ?: ""}",
-                    color = Color.White)
+                    color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ElevatedCard(shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
                 Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ProfileAction("💗", "Salud", Modifier.weight(1f), onHealth)
-                    ProfileAction("💉", "Vacunas", Modifier.weight(1f), onHealth)
-                    ProfileAction("🖼️", "Fotos", Modifier.weight(1f), onPhotos)
-                    ProfileAction("🪙", "Gastos", Modifier.weight(1f), onExpenses)
+                    ProfileAction("🐾", "Ficha", Modifier.weight(1f), Color(0xFF1CB65E)) {
+                        scope.launch { scrollState.animateScrollTo(265) }
+                    }
+                    ProfileAction("💗", "Salud", Modifier.weight(1f), PetPalette.Rose, onHealth)
+                    ProfileAction("💉", "Vacunas", Modifier.weight(1f), PetPalette.Violet, onVaccines)
+                    ProfileAction("🪙", "Gastos", Modifier.weight(1f), PetPalette.Orange, onExpenses)
                 }
             }
             ElevatedCard(shape = RoundedCornerShape(24.dp),
@@ -156,16 +174,26 @@ fun PetProfileScreen(
 
 @Composable
 private fun ProfileRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        Text(value, color = Ink, fontWeight = FontWeight.SemiBold)
+    Row(Modifier.fillMaxWidth().heightIn(min = 35.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, Modifier.weight(1f), fontSize = 13.sp, lineHeight = 18.sp,
+            color = PetPalette.Ink, maxLines = 2)
+        Text(value, Modifier.weight(0.85f), color = Ink, fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp, lineHeight = 16.sp, textAlign = TextAlign.End,
+            maxLines = 3, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
-private fun ProfileAction(emoji: String, label: String, modifier: Modifier, onClick: () -> Unit) {
+private fun ProfileAction(emoji: String, label: String, modifier: Modifier,
+    background: Color, onClick: () -> Unit) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        FilledTonalIconButton(onClick = onClick, modifier = Modifier.size(50.dp)) { Text(emoji) }
-        Text(label, style = MaterialTheme.typography.labelSmall)
+        FilledIconButton(onClick = onClick, modifier = Modifier.size(52.dp),
+            colors = IconButtonDefaults.filledIconButtonColors(containerColor = background)) {
+            Text(emoji, fontSize = 22.sp)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(label, fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
