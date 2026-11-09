@@ -272,7 +272,8 @@ class MainActivity : ComponentActivity() {
                             is Destination.Profile -> PetProfileScreen(
                                 allPets.firstOrNull { it.id == page.petId },
                                 database.healthDao(), database.expenseDao(), vm, onBack = goBack,
-                                onHealth = { destination = Destination.Health(page.petId) },
+                                onHealth = { destination = Destination.Health(page.petId, 1) },
+                                onVaccines = { destination = Destination.Health(page.petId, 0) },
                                 onPhotos = { destination = Destination.Photos(page.petId) },
                                 onExpenses = { destination = Destination.Expenses(page.petId) })
                             is Destination.Health -> HealthScreen(page.petId, database.healthDao(), onBack = goBack,
