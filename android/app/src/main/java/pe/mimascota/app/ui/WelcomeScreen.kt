@@ -34,7 +34,7 @@ fun WelcomeScreen(
     onEmail: () -> Unit,
     onGuest: () -> Unit
 ) {
-    Column(Modifier.fillMaxSize().background(PetPalette.DeepTeal)) {
+    Column(Modifier.fillMaxSize().background(PetPalette.DeepTeal).safeDrawingPadding()) {
         Box(Modifier.fillMaxWidth().weight(1f).background(
             Brush.verticalGradient(listOf(Color(0xFF102B31), Color(0xFF28684B),
                 Color(0xFF134C50))))) {
@@ -46,33 +46,37 @@ fun WelcomeScreen(
                     drawCircle(light, (10 + i % 4 * 6).dp.toPx(), Offset(x, y))
                 }
             }
-            Column(Modifier.fillMaxWidth().padding(top = 38.dp, start = 12.dp, end = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(82.dp).clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.16f)),
-                    contentAlignment = Alignment.Center) {
-                    Text("🐾", fontSize = 58.sp)
+            Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(Modifier.fillMaxWidth().padding(top = 15.dp, start = 12.dp, end = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.size(68.dp).clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.16f)),
+                        contentAlignment = Alignment.Center) {
+                        Text("🐾", fontSize = 47.sp)
+                    }
+                    Spacer(Modifier.height(5.dp))
+                    Text("Mi Mascota", fontSize = 34.sp, lineHeight = 39.sp,
+                        fontWeight = FontWeight.ExtraBold, color = Color.White,
+                        textAlign = TextAlign.Center)
+                    Text("Salud · Cuidado · Comunidad", color = Color.White,
+                        fontSize = 13.sp, textAlign = TextAlign.Center)
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Mi Mascota", fontSize = 37.sp, lineHeight = 42.sp,
-                    fontWeight = FontWeight.ExtraBold, color = Color.White,
-                    textAlign = TextAlign.Center)
-                Text("Salud · Cuidado · Comunidad", color = Color.White,
-                    fontSize = 14.sp, textAlign = TextAlign.Center)
-            }
-            Box(Modifier.fillMaxWidth().height(240.dp).align(Alignment.BottomCenter),
-                contentAlignment = Alignment.Center) {
-                if (!photoUri.isNullOrBlank()) {
-                    AndroidView(factory = { context ->
-                        ImageView(context).apply { scaleType = ImageView.ScaleType.CENTER_CROP }
-                    }, update = { image -> runCatching { image.setImageURI(Uri.parse(photoUri)) }
-                        .onFailure { image.setImageDrawable(null) } },
-                        modifier = Modifier.fillMaxWidth(0.91f).fillMaxHeight().clip(RoundedCornerShape(32.dp)))
-                } else {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.Bottom) {
-                        Text("🐶", fontSize = 125.sp)
-                        Text("🐱", fontSize = 102.sp)
+                Box(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center) {
+                    if (!photoUri.isNullOrBlank()) {
+                        AndroidView(factory = { context ->
+                            ImageView(context).apply { scaleType = ImageView.ScaleType.CENTER_CROP }
+                        }, update = { image -> runCatching { image.setImageURI(Uri.parse(photoUri)) }
+                            .onFailure { image.setImageDrawable(null) } },
+                            modifier = Modifier.fillMaxWidth(0.94f).fillMaxHeight()
+                                .clip(RoundedCornerShape(28.dp)))
+                    } else {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Text("🐶", fontSize = 105.sp)
+                            Text("🐱", fontSize = 90.sp)
+                        }
                     }
                 }
             }
