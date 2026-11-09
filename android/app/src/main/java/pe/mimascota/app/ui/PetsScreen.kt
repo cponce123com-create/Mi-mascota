@@ -1,6 +1,8 @@
 package pe.mimascota.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -18,6 +20,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.net.Uri
@@ -31,20 +35,9 @@ private val Mint = Color(0xFFE8F8F5)
 private val Canvas = Color(0xFFF0F8FA)
 
 @Composable
-private fun DashboardTile(icon: String, label: String, tint: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    ElevatedCard(
-        modifier = modifier.height(105.dp).clickable(onClick = onClick),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color.White)
-    ) {
-        Column(Modifier.fillMaxSize().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center) {
-            Text(icon, style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(5.dp))
-            Text(label, color = tint, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.labelLarge)
-        }
-    }
+private fun DashboardTile(icon: String, label: String, tint: Color,
+    modifier: Modifier = Modifier, onClick: () -> Unit) {
+    PetActionTile(icon, label, tint, modifier, onClick)
 }
 
 @Composable
@@ -67,7 +60,8 @@ fun PetsScreen(
     onAccount: () -> Unit,
     onAdoption: () -> Unit,
     onLost: () -> Unit,
-    onProfile: (String) -> Unit
+    onProfile: (String) -> Unit,
+    onTips: () -> Unit
 ) {
     val pets by viewModel.pets.collectAsStateWithLifecycle()
     val activePet = pets.firstOrNull { it.id == selectedId } ?: pets.firstOrNull()
@@ -94,52 +88,59 @@ fun PetsScreen(
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             item {
-                Column(
-                    Modifier.fillMaxWidth().background(
-                        Brush.verticalGradient(listOf(Ocean, Color(0xFF00949B), Canvas))
-                    ).padding(start = 18.dp, end = 18.dp, top = 22.dp, bottom = 25.dp)
-                ) {
-                    Text("🐾 Mi Mascota", style = MaterialTheme.typography.headlineMedium,
-                        color = Color.White, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(16.dp))
+                Column(Modifier.fillMaxWidth().background(
+                    Brush.verticalGradient(listOf(Color(0xFF004A58),
+                        Color(0xFF007E89), Color(0xFFAEDDE6)))
+                ).padding(start = 16.dp, end = 16.dp, top = 15.dp, bottom = 20.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("🐾 Mi Mascota", modifier = Modifier.weight(1f),
+                            fontSize = 24.sp, lineHeight = 29.sp,
+                            color = Color.White, fontWeight = FontWeight.ExtraBold)
+                        IconButton(onClick = { withPet(onReminders) }) {
+                            Text("🔔", fontSize = 24.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(11.dp))
                     Text("¡Hola! 👋", style = MaterialTheme.typography.headlineSmall,
-                        color = Color.White, fontWeight = FontWeight.Bold)
+                        fontWeight = FontWeight.Bold, color = Color.White)
                     Text("Cuida, organiza y comparte la vida de tus mascotas.",
-                        color = Color.White)
-                    Spacer(Modifier.height(18.dp))
-                    ElevatedCard(shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFF5FCFF))) {
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(14.dp),
-                            horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                        fontSize = 14.sp, lineHeight = 19.sp, color = Color.White,
+                        modifier = Modifier.fillMaxWidth(0.88f))
+                    Spacer(Modifier.height(16.dp))
+                    ElevatedCard(
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFF3FBFF)),
+                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 3.dp)
+                    ) {
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                            .padding(12.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
                             pets.forEach { pet ->
-                                val chosen = activePet?.id == pet.id
-                                Column(Modifier.width(80.dp).clickable { onSelectPet(pet.id) },
-                                    horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Box(Modifier.size(58.dp).clip(CircleShape)
-                                        .background(if (chosen) Color(0xFFB5F4C6) else Color(0xFFDCECF7)),
-                                        contentAlignment = Alignment.Center) {
-                                        val uri = photos.firstOrNull { it.petId == pet.id }?.uri
-                                        if (uri == null) {
-                                            Text(if (pet.species == "DOG") "🐶" else if (pet.species == "CAT") "🐱" else "🐾",
-                                                style = MaterialTheme.typography.headlineLarge)
-                                        } else {
-                                            AndroidView(factory = { ctx -> ImageView(ctx).apply { scaleType = ImageView.ScaleType.CENTER_CROP } },
-                                                update = { image -> runCatching { image.setImageURI(Uri.parse(uri)) }
-                                                    .onFailure { image.setImageDrawable(null) } },
-                                                modifier = Modifier.fillMaxSize().clip(CircleShape))
-                                        }
+                                val selected = activePet?.id == pet.id
+                                val uri = photos.firstOrNull { it.petId == pet.id }?.uri
+                                Column(Modifier.width(78.dp).clickable {
+                                    onSelectPet(pet.id)
+                                }, horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(Modifier.size(64.dp).clip(CircleShape)
+                                        .border(if (selected) 3.dp else 1.dp,
+                                            if (selected) Color(0xFF0EAF61) else Color(0xFFD2E6EB),
+                                            CircleShape).padding(4.dp)) {
+                                        PetAvatar(uri, pet.species, Modifier.fillMaxSize())
                                     }
-                                    Text(pet.name, maxLines = 1, fontWeight = if (chosen) FontWeight.Bold else FontWeight.Normal)
-                                    if (chosen) Text("● Activa", color = Teal, style = MaterialTheme.typography.labelSmall)
+                                    Spacer(Modifier.height(3.dp))
+                                    Text(pet.name, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                        fontSize = 12.sp, lineHeight = 15.sp,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
                                 }
                             }
-                            Column(Modifier.width(80.dp).clickable { showAdd = true },
+                            Column(Modifier.width(78.dp).clickable { showAdd = true },
                                 horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(Modifier.size(58.dp).clip(CircleShape).background(Color(0xFFD8E9FA)),
+                                Box(Modifier.size(64.dp).clip(CircleShape)
+                                    .background(Color(0xFFD6EAFB)),
                                     contentAlignment = Alignment.Center) {
-                                    Text("+", style = MaterialTheme.typography.headlineLarge, color = Ocean)
+                                    Text("+", fontSize = 34.sp, color = PetPalette.Ocean)
                                 }
-                                Text("Agregar", fontWeight = FontWeight.Medium)
+                                Spacer(Modifier.height(3.dp))
+                                Text("Agregar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -147,7 +148,7 @@ fun PetsScreen(
             }
             item {
                 Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(if (activePet == null) "Empieza registrando tu mascota" else "Cuidando a ${activePet.name} 💚",
+                    Text(if (activePet == null) "Empieza registrando tu mascota" else "Servicios para ${activePet.name} 💚",
                         style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Ocean)
                     if (activePet != null) {
                         TextButton(onClick = { onProfile(activePet.id) }) { Text("🐾 Ver ficha completa de ${activePet.name} ›") }
@@ -167,20 +168,33 @@ fun PetsScreen(
                         DashboardTile("📢", "Perdidos", Color(0xFFC94936), Modifier.weight(1f), onLost)
                         DashboardTile("☁️", "Respaldos", Color(0xFF1177C2), Modifier.weight(1f), onBackup)
                     }
-                    ElevatedCard(shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFDCF4E5))) {
-                        Row(Modifier.fillMaxWidth().clickable(onClick = onCompanion).padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Text("🐕", style = MaterialTheme.typography.headlineLarge)
-                            Spacer(Modifier.width(12.dp))
+                    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                        .background(Brush.horizontalGradient(listOf(
+                            Color(0xFF075B35), Color(0xFF1F9B4C), Color(0xFF50BA65))))
+                        .clickable(onClick = onTips)) {
+                        Row(Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            PetAvatar(photos.firstOrNull { it.petId == activePet?.id }?.uri,
+                                activePet?.species ?: "DOG", Modifier.size(64.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("Compañero virtual", fontWeight = FontWeight.Bold, color = Color(0xFF165B39))
-                                Text("Juega y cuida a tu mascota", style = MaterialTheme.typography.bodySmall)
+                                Text("Consejos de cuidado", fontSize = 16.sp,
+                                    lineHeight = 20.sp, color = Color.White,
+                                    fontWeight = FontWeight.Bold)
+                                Text("Guías y recomendaciones para su bienestar.",
+                                    fontSize = 11.sp, lineHeight = 15.sp, color = Color.White)
                             }
-                            Text("›", style = MaterialTheme.typography.headlineMedium)
+                            Text("›", fontSize = 30.sp, color = Color.White)
                         }
                     }
-                    OutlinedButton(onClick = onVets, modifier = Modifier.fillMaxWidth()) { Text("📍 Buscar veterinarias cercanas") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onCompanion, modifier = Modifier.weight(1f)) {
+                            Text("🎮 Juegos", maxLines = 1, fontSize = 12.sp)
+                        }
+                        OutlinedButton(onClick = onVets, modifier = Modifier.weight(1f)) {
+                            Text("📍 Veterinarias", maxLines = 1, fontSize = 12.sp)
+                        }
+                    }
                     if (activePet != null) {
                         OutlinedButton(onClick = {
                             editingId = activePet.id
@@ -225,7 +239,7 @@ fun PetsScreen(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("Nombre") })
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilterChip(selected = species == "CAT", onClick = { species = "CAT" }, label = { Text("Gato") })
                     FilterChip(selected = species == "DOG", onClick = { species = "DOG" }, label = { Text("Perro") })
                     FilterChip(selected = species == "OTHER", onClick = { species = "OTHER" }, label = { Text("Otro") })
@@ -257,7 +271,7 @@ fun PetsScreen(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("Nombre") }, singleLine = true)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = species == "CAT", onClick = { species = "CAT" }, label = { Text("🐱 Gato") })
                     FilterChip(selected = species == "DOG", onClick = { species = "DOG" }, label = { Text("🐶 Perro") })
                     FilterChip(selected = species == "OTHER", onClick = { species = "OTHER" }, label = { Text("Otro") })
